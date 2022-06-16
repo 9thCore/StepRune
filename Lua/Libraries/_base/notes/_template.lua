@@ -8,15 +8,12 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 	local note = {}
 
-	note.type = 'normal'
+	note.type = ''
 	note.created = false
 
 	function note:create()
 
 		self.created = true
-
-		self.receptor = receptor
-		self.realalpha = 0
 
 		self.parent = CreateSprite('empty', 'game_notepart')
 		self.parent.SetParent(receptor.parent)
@@ -53,10 +50,12 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 				-- appear
 				self:alphatransition(sofar, 0, 1, 0.125)
 
-				-- make other notes appear too
-				for _,n in ipairs(self.nt) do
-					n:alphatransition(sofar, 0, 1, 0.125)
-				end
+			end
+
+			function self:alphatransition(t, start, change, d)
+
+				local alpha = easing.linear(math.min(t,d), start, change, d) * receptor.visual.alpha
+				self.sprite.alpha = alpha
 
 			end
 
@@ -94,21 +93,6 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 			end
 
 			self.removed = true
-
-		end
-
-		function self:alphatransition(t, start, change, d)
-
-			local alpha = easing.linear(math.min(t,d), start, change, d)
-			self:setalpha(alpha)
-
-		end
-
-		function self:setalpha(alpha)
-
-			self.realalpha = alpha
-
-			self.sprite.alpha = alpha * receptor.visual.alpha
 
 		end
 

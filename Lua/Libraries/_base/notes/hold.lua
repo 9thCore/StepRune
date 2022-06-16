@@ -3,203 +3,257 @@ local notehold = {}
 local conductor = require '_base/conductor'
 local easing = require 'easing'
 local input = require '_base/input'
+local spritehelper = require 'spritehelper'
 
 local holdgrace = 0.15
 
-function notehold.spawn(duration, receptor, distance, noteease, holdease, holdendbeat)
+function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease, holdendbeat)
 
 	local note = {}
 
-	note.parent = CreateSprite('empty', 'game_notepart')
-	note.parent.SetParent(receptor.parent)
-	note.parent.x = 0
-	note.parent.y = -distance
+	note.type = 'hold'
+	note.created = false
 
-	note.holdparent = CreateSprite('_base/arrow/mask/'..receptor.visual.rotation, 'game_notepart')
-	note.holdparent.SetParent(note.parent)
-	-- note.holdparent.Mask('invertedstencil') -- uncomment this when the bug related to masks and shaders is fixed!
-	note.holdparent.x = 0
-	note.holdparent.y = 0
-	note.holdparent.alpha = 0.001
+	function note:create()
 
-	note.sprite = CreateSprite('_base/arrow/0', 'game_notepart')
-	note.sprite.SetAnimation({'0', '1', '2', '3'}, 1/8, '_base/arrow')
-	note.sprite.rotation = receptor.visual.rotation
-	note.sprite.SetParent(note.parent)
-	note.sprite.x = 0
-	note.sprite.y = 0
-	note.sprite.alpha = 0
+		self.created = true
 
-	note.holdend = CreateSprite('_base/arrow/hold_end', 'game_notepart')
-	note.holdend.SetPivot(0.5,1)
-	note.holdend.SetParent(note.holdparent)
-	note.holdend.x = 0
-	note.holdend.y = 0
+		self.receptor = receptor
+		self.realalpha = 0
 
-	note.holdbody = CreateSprite('_base/arrow/hold_body', 'game_notepart')
-	note.holdbody.shader.Set('coreshaders', 'Tiler')
-	note.holdbody.SetPivot(0.5,1)
-	note.holdbody.SetParent(note.holdparent)
-	note.holdbody.x = 0
-	note.holdbody.y = 0
+		self.parent = CreateSprite('empty', 'game_notepart')
+		self.parent.SetParent(receptor.parent)
+		self.parent.x = 0
+		self.parent.y = -distance
 
-	note.missed = false
-	note.removed = false
-	note.checkhit = true
-	note.holding = false
-	note.judgement = 'perfect'
+		self.holdparent = CreateSprite('_base/arrow/mask/'..receptor.visual.rotation, 'game_notepart')
+		self.holdparent.SetParent(self.parent)
+		self.holdparent.x = 0
+		self.holdparent.y = 0
+		self.holdparent.alpha = 0.001
 
-	note.startsec = conductor.seconds
-	note.endsec = conductor.seconds + duration
+		self.sprite = CreateSprite('_base/arrow/0', 'game_notepart')
+		self.sprite.SetAnimation({'0', '1', '2', '3'}, 1/8, '_base/arrow')
+		self.sprite.rotation = receptor.visual.rotation
+		self.sprite.SetParent(self.parent)
+		self.sprite.x = 0
+		self.sprite.y = 0
+		self.sprite.alpha = 0
 
-	note.holdendsec = conductor.beattosec(holdendbeat)
-	note.startholdsec = note.endsec
-	note.stopholdsec = note.endsec
-	note.grace = holdgrace
+		self.holdend = CreateSprite('_base/arrow/hold_end', 'game_notepart')
+		self.holdend.SetPivot(0.5,1)
+		self.holdend.SetParent(self.holdparent)
+		self.holdend.x = 0
+		self.holdend.y = 0
 
-	note.distance = distance
+		self.holdbody = CreateSprite('_base/arrow/hold_body', 'game_notepart')
+		self.holdbody.shader.Set('coreshaders', 'Tiler')
+		self.holdbody.SetPivot(0.5,1)
+		self.holdbody.SetParent(self.holdparent)
+		self.holdbody.x = 0
+		self.holdbody.y = 0
 
-	do
+		if not iscopy then
 
-		local duration = note.endsec - note.startsec
-		local diff = note.holdendsec - note.endsec
-		local bodylength = diff/duration*note.distance
+			self.missed = false
+			self.removed = false
+			self.checkhit = true
+			self.holding = false
+			self.judgement = 'perfect'
 
-		note.initialbodylength = bodylength
-		note.initialtile = bodylength / note.holdbody.height
+			self.startsec = conductor.seconds
+			self.endsec = conductor.seconds + duration
 
-		note.holdbody.yscale = note.initialtile
-		note.holdbody.shader.SetFloat('TilesY', note.initialtile)
+			self.holdendsec = conductor.beattosec(holdendbeat)
+			self.startholdsec = self.endsec
+			self.stopholdsec = self.endsec
+			self.grace = holdgrace
 
-		note.holdend.y = -bodylength
+			self.distance = distance
 
-	end
+			do
 
-	function note:update()
+				local duration = self.endsec - self.startsec
+				local diff = self.holdendsec - self.endsec
+				local bodylength = diff/duration*self.distance
 
-		-- moving the note
-		local sofar = conductor.seconds - self.startsec
-		local total = self.endsec - self.startsec
+				self.initialbodylength = bodylength
+				self.initialtile = bodylength / self.holdbody.height
 
-		if not note.holding then -- dont move if we're holding
+				self.holdbody.yscale = self.initialtile
+				self.holdbody.shader.SetFloat('TilesY', self.initialtile)
 
-			if not self.heldonce then
-				self.parent.y = noteease(sofar, -self.distance, self.distance, total)
-			else
-				self:disappear(conductor.seconds - self.stopholdsec)
+				self.holdend.y = -bodylength
+
 			end
 
-		else
-			self.dontmiss = true
+			function self:update()
 
-			local stillholding = (input.getkey(self.row) > 0) -- if we're holding the button, we instantly know to set this to true
+				-- moving the note
+				local sofar = conductor.seconds - self.startsec
+				local total = self.endsec - self.startsec
 
-			if stillholding then
+				if not self.holding then -- dont move if we're holding
 
-				self.grace = holdgrace -- still holding so reset the grace period
-
-			elseif not stillholding then -- we aren't holding the button, lets check the grace period!
-
-				self.grace = self.grace - Time.dt -- decrease the grace period
-
-				if self.grace <= 0 then -- no more grace period!
-
-					self.judge = 'miss'
-					self.holding = false
-					self.dontdisappear = true
-					self.stopholdsec = conductor.seconds
+					if not self.heldonce then
+						self.parent.y = noteease(sofar, -self.distance, self.distance, total)
+					else
+						self:alphatransition(conductor.seconds - self.stopholdsec, 1, -1, 0.125)
+					end
 
 				else
 
-					stillholding = true -- we still have a grace period, still holding the note!
+					self.dontmiss = true
+
+					local stillholding = (input.getkey(self.row) > 0) -- if we're holding the button, we instantly know to set this to true
+
+					if stillholding then
+
+						self.grace = holdgrace -- still holding so reset the grace period
+
+					elseif not stillholding then -- we aren't holding the button, lets check the grace period!
+
+						self.grace = self.grace - Time.dt -- decrease the grace period
+
+						if self.grace <= 0 then -- no more grace period!
+
+							self.judge = 'miss'
+							self.holding = false
+							self.dontdisappear = true
+							self.stopholdsec = conductor.seconds
+
+						else
+
+							stillholding = true -- we still have a grace period, still holding the note!
+
+						end
+
+					end
+
+					if stillholding then
+						if conductor.seconds >= self.holdendsec then -- we're done with the hold!
+							self:finishhold()
+						end
+					end
+				end
+
+				-- alpha
+				if not self.dontdisappear then -- if we're currently disappearing dont do this!
+					self:alphatransition(sofar, 0, 1, 0.125) -- appear
+
+					-- make other notes appear too
+					for _,n in ipairs(self.nt) do
+						n:alphatransition(sofar, 0, 1, 0.125)
+					end
+				end
+
+				self:setalpha(self.realalpha)
+
+				if self.holding then
+
+					self.parent.y = 0 -- snap to the receptor because it looks weird otherwise
+
+					-- moving the hold end
+					local duration = self.endsec - self.startsec
+					local diff = self.holdendsec - self.holdstartsec
+					local length = diff/duration*self.distance
+
+					sofar = conductor.seconds - self.holdstartsec
+
+					local bodylength = math.max(holdease(sofar, length, -length, diff), 0)
+
+					self.holdend.y = -bodylength
+
+					-- making the hold body
+					self.holdbody.yscale = bodylength / self.holdbody.height
+
+					local multiplier = self.initialbodylength / bodylength
+					local tiley = self.initialtile / multiplier
+
+					self.holdbody.shader.SetFloat('TilesY', tiley)
 
 				end
 
 			end
 
-			if stillholding then
-				if conductor.seconds >= self.holdendsec then -- we're done with the hold!
-					self.judge = self.judgement
-					self:remove()
+			function self:hit(oldjudgement)
+				self.judgement = oldjudgement
+				if not self.heldonce then -- cant start holding if we already held once prior!
+					self.holding = true
+					self.holdstartsec = conductor.seconds
+					self.heldonce = true
+					return true, nil -- we did hit it
+				end
+				return false, nil -- we didnt hit it
+			end
+
+			function self:setcolor(color)
+
+				self.sprite.color = color
+
+			end
+
+			function self:finishhold()
+				self.judge = self.judgement
+				self:remove()
+			end
+
+		else
+
+			function self:copy(note)
+
+				spritehelper.copysprite(self.parent, note.parent, false, false)
+				spritehelper.copysprite(self.holdparent, note.holdparent, false, false)
+
+				spritehelper.copysprite(self.sprite, note.sprite, false, false)
+				spritehelper.copysprite(self.holdbody, note.holdbody, false, false)
+				spritehelper.copysprite(self.holdend, note.holdend, false, false)
+
+				self.holdbody.shader.SetFloat('TilesY', note.holdbody.shader.GetFloat('TilesY'))
+
+				self:setalpha(note.realalpha)
+
+			end
+
+		end
+
+		function self:remove()
+				
+			self.sprite.Remove()
+			self.holdbody.Remove()
+			self.holdend.Remove()
+			self.holdparent.Remove()
+			self.parent.Remove()
+
+			self.removed = true
+
+			if self.nt then
+				for _,n in ipairs(self.nt) do
+					n:remove()
 				end
 			end
-		end
-
-		-- alpha
-		if not self.dontdisappear then -- if we're currently disappearing dont do this!
-			local alpha = easing.linear(math.min(sofar, 0.125), 0, 1, 0.125)
-
-			self.sprite.alpha = alpha
-			self.holdend.alpha = alpha
-			self.holdbody.alpha = alpha
 
 		end
 
-		if self.holding then
+		function self:alphatransition(t, start, change, d)
 
-			self.parent.y = 0 -- snap to the receptor because it looks weird otherwise
+			if self.holding then return end
 
-			-- moving the hold end
-			local duration = self.endsec - self.startsec
-			local diff = self.holdendsec - self.holdstartsec
-			local length = diff/duration*self.distance
+			local alpha = easing.linear(math.min(t,d), start, change, d)
 
-			sofar = conductor.seconds - self.holdstartsec
-
-			local bodylength = math.max(holdease(sofar, length, -length, diff), 0)
-
-			self.holdend.y = -bodylength
-
-			-- making the hold body
-			self.holdbody.yscale = bodylength / self.holdbody.height
-
-			local multiplier = self.initialbodylength / bodylength
-			local tiley = self.initialtile / multiplier
-
-			self.holdbody.shader.SetFloat('TilesY', tiley)
+			self:setalpha(alpha)
 
 		end
 
-	end
+		function self:setalpha(alpha)
 
-	function note:hit(oldjudgement)
-		self.judgement = oldjudgement
-		if not self.heldonce then -- cant start holding if we already held once!
-			self.holding = true
-			self.holdstartsec = conductor.seconds
-			self.heldonce = true
-			return true, nil -- we did hit it
+			self.realalpha = alpha
+
+			self.sprite.alpha = alpha * receptor.visual.alpha
+			self.holdbody.alpha = alpha * receptor.visual.alpha
+			self.holdend.alpha = alpha * receptor.visual.alpha
+
 		end
-		return false, nil -- we didnt hit it
-	end
-
-	function note:remove()
-
-		self.sprite.Remove()
-		self.holdbody.Remove()
-		self.holdend.Remove()
-		self.holdparent.Remove()
-		self.parent.Remove()
-
-		self.removed = true
-
-	end
-
-	function note:disappear(sec)
-
-		if self.holding then return end
-
-		local alpha = easing.linear(sec, 1, -1, 0.125)
-
-		self.sprite.alpha = alpha
-		self.holdbody.alpha = alpha
-		self.holdend.alpha = alpha
-
-	end
-
-	function note:setcolor(color)
-
-		self.sprite.color = color
 
 	end
 

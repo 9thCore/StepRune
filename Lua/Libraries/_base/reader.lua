@@ -3,17 +3,6 @@ local reader = {}
 local level = require '_base/level'
 local conductor = require '_base/conductor'
 
-local ChartPath
-local Misc
-
-function reader.init()
-
-	-- hehe          funny
-	ChartPath = _G['ChartPath']
-	Misc = _G['Misc']
-
-end
-
 local function findbpmhere(line)
 	local newline = line:gsub('#BPMS:', ''):gsub(',',''):gsub(';','')
 
@@ -137,6 +126,10 @@ function reader.load(folder, setstate)
 								tempnotes[#tempnotes+1] = {type = 'hold', line = lineinmeasure, measure = measure, row = j, head = false, holdhead = holdhead} -- the hold end
 								holdheads[j] = nil
 							end
+
+						elseif c == 'M' or c == 'm' then -- mine
+
+							tempnotes[#tempnotes+1] = {type = 'mine', line = lineinmeasure, measure = measure, row = j}
 
 						end
 

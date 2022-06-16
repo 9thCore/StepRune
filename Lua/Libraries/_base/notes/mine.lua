@@ -1,14 +1,14 @@
-local notenormal = {}
+local notemine = {}
 
 local conductor = require '_base/conductor'
 local easing = require 'easing'
 local spritehelper = require 'spritehelper'
 
-function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdease)
+function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease)
 
 	local note = {}
 
-	note.type = 'normal'
+	note.type = 'mine'
 	note.created = false
 
 	function note:create()
@@ -23,8 +23,7 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 		self.parent.x = 0
 		self.parent.y = -distance
 
-		self.sprite = CreateSprite('_base/arrow/0', 'game_notepart')
-		self.sprite.SetAnimation({'0', '1', '2', '3'}, 1/8, '_base/arrow')
+		self.sprite = CreateSprite('_base/arrow/mine', 'game_notepart')
 		self.sprite.rotation = receptor.visual.rotation
 		self.sprite.SetParent(self.parent)
 		self.sprite.x = 0
@@ -36,6 +35,7 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 			self.missed = false
 			self.removed = false
 			self.checkhit = true
+			self.dontmiss = true
 
 			self.startsec = conductor.seconds
 			self.endsec = conductor.seconds + duration
@@ -50,6 +50,8 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 				self.parent.y = noteease(sofar, -self.distance, self.distance, total)
 
+				self.sprite.rotation = conductor.seconds*90
+
 				-- appear
 				self:alphatransition(sofar, 0, 1, 0.125)
 
@@ -62,13 +64,10 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 			function self:hit(oldjudgement)
 				self:remove()
-				return true, oldjudgement
+				return true, 'miss'
 			end
 
 			function self:setcolor(color)
-
-				self.sprite.color = color
-
 			end
 
 		else
@@ -118,4 +117,4 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 end
 
-return notenormal
+return notemine

@@ -2,8 +2,6 @@ local play = {}
 
 local resources = require '_base/states/menu/resources'
 local reader = require '_base/reader'
-local Misc = Misc -- :)
-local ChartPath = ChartPath -- temporarily set during the initialization so we're saving it for later use
 
 local function getlist(offset)
 

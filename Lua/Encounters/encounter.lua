@@ -9,7 +9,7 @@ enemypositions = {}
 -- cover, also pretty much base layer for the game and menu
 CreateLayer('menu_cover', 'Top', false)
 CreateLayer('game_cover', 'menu_cover', false)
-CreateSprite('black', 'menu_cover') -- lowest so we dont care about it
+CreateSprite('black', 'menu_cover') -- lowest so we dont really care about it
 
 local function loadbase(name)
 	return require('_base/'..name)
@@ -19,6 +19,10 @@ local statemanager = loadbase 'states/manager'
 local reader = loadbase 'reader'
 local conductor = loadbase 'conductor'
 local level = loadbase 'level'
+local ui = loadbase 'ui'
+local lockdown = loadbase 'lockdown'
+
+local env
 
 -- initialize
 function EncounterStarting()
@@ -29,15 +33,12 @@ function EncounterStarting()
 	State 'NONE'
 
 	statemanager.init()
-	reader.init()
 	level.init()
 	conductor.reset()
+	ui.reset()
+	
+	env = lockdown.getenv()
 
-	ChartPath = nil
-	Misc = nil
-
-	EncounterStarting = nil -- lmao
-	-- cant re-initialize after the initialization :)
 end
 
 function Update()
@@ -46,4 +47,7 @@ function Update()
 	conductor.update()
 	level.update()
 
+end
+
+function OnHit() -- dont allow the player to take damage
 end
