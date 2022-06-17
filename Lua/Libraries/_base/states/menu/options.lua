@@ -63,24 +63,22 @@ settext = {
 
 		local diffCamel = diffs[diffi].camel
 		local full = '[instant]Difficulty [' .. diffCamel .. ']'
-
 		settext.set(2, full)
 
 	end,
 	autoplay = function()
 
 		local str = '[instant]Autoplay [' .. ((level.autoplay and 'ON') or 'OFF') .. ']'
-
 		settext.set(3, str)
 
 	end,
 	mineexplo = function()
 
 		local str = '[instant]Mine explosions [' .. ((level.mineexplos and 'ON') or 'OFF') .. ']'
-
 		settext.set(4, str)
 
 	end
+
 }
 
 local function exit(ss)
