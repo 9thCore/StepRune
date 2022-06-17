@@ -4,6 +4,8 @@ local conductor = require '_base/conductor'
 local easing = require 'easing'
 local spritehelper = require 'spritehelper'
 
+NewAudio.CreateChannel('boom')
+
 function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease)
 
 	local note = {}
@@ -17,6 +19,7 @@ function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 		self.receptor = receptor
 		self.realalpha = 0
+		self.rotoffset = 0
 
 		self.parent = CreateSprite('empty', 'game_notepart')
 		self.parent.SetParent(receptor.parent)
@@ -50,7 +53,7 @@ function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 				self.parent.y = noteease(sofar, -self.distance, self.distance, total)
 
-				self.sprite.rotation = conductor.seconds*90
+				self.sprite.rotation = conductor.seconds*90 + self.rotoffset
 
 				-- appear
 				self:alphatransition(sofar, 0, 1, 0.125)
@@ -63,11 +66,16 @@ function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease
 			end
 
 			function self:hit(oldjudgement)
+				NewAudio.PlaySound('boom', 'boom', false, 0.5)
 				self:remove()
 				return true, 'miss'
 			end
 
 			function self:setcolor(color)
+			end
+
+			function self:autoplay()
+				return false
 			end
 
 		else
@@ -79,6 +87,12 @@ function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 			end
 
+		end
+
+		function self:rotate(rot, additive)
+			additive = not not additive
+
+			self.rotoffset = rot + ((additive and self.rotoffset) or 0)
 		end
 
 		function self:remove()

@@ -3,7 +3,7 @@ local manager = {}
 manager.allnotes = {} -- stores all the notes
 manager.notes = {} -- stores notes currently on screen, gets sorted with the first arrows first and gets rid of them when they should be done
 manager.receptors = {}
-local lastid = 0
+manager.realexplo = {}
 
 local notetypes = {
 	normal = require '_base/notes/normal',
@@ -32,7 +32,7 @@ function manager.new(t)
 
 	manager.allnotes[#manager.allnotes+1] = newnote
 
-	return newnote
+	return newnote, #manager.allnotes
 
 end
 
@@ -40,7 +40,7 @@ function manager.getnote(idx)
 	return manager.allnotes[idx]
 end
 
-function manager.create(note)
+function manager.create(note, i)
 
 	note:create()
 
@@ -58,6 +58,8 @@ function manager.create(note)
 	end
 
 	manager.notes[#manager.notes+1] = note
+	manager.allnotes[i] = note
+
 end
 
 function manager.spawn(type, line, duration, row, measure, distance, ...)
@@ -119,12 +121,13 @@ function manager.createreceptors()
 		rcptr.visual.y = 0
 		rcptr.visual.rotation = rot
 
-		rcptr.explosion = CreateSprite('empty', 'game_receptor') -- the explosion after hitting a note
+		rcptr.explosion = CreateSprite('_base/arrow/hit_perfect', 'game_receptor') -- the explosion after hitting a note
 		rcptr.explosion.SetParent(rcptr.visual)
 		rcptr.explosion.x = 0
 		rcptr.explosion.y = 0
 		rcptr.explosion.rotation = rot
-		rcptr.explosion['startsec'] = -0.3
+		rcptr.explosion.alpha = 0
+		rcptr.explosion['startsec'] = -10
 		rcptr.explosion['alphamult'] = 1
 
 		rcptr.parent.SendToTop()
@@ -184,6 +187,17 @@ function manager.createreceptors()
 
 end
 
+function manager.exploreal(x, y)
+
+	local e = CreateSprite('empty', 'game_notepart')
+	e.SetAnimation({'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'}, 1/30, '_base/explosion')
+	e.loopmode = 'ONESHOTEMPTY'
+	e.MoveToAbs(x,y)
+
+	manager.realexplo[#manager.realexplo+1] = e
+
+end
+
 function manager.removereceptors(t)
 
 	for _,dir in ipairs(rowtoreceptordir) do
@@ -201,9 +215,24 @@ function manager.reset()
 		manager.removereceptors(r)
 	end
 
+	for _,n in ipairs(manager.allnotes) do
+		if n.created and not n.removed then
+			n:remove()
+		end
+	end
+
+	for _,e in ipairs(manager.realexplo) do
+		e.Remove()
+	end
+
 	manager.notes = {}
+	manager.allnotes = {}
 	manager.receptors = {}
-	lastid = 0
+	manager.realexplo = {}
+
+	manager.noteease = easing.linear
+	manager.holdease = easing.linear
+	
 end
 
 function manager.init()
@@ -217,12 +246,7 @@ function manager.init()
 end
 
 function manager.exit()
-
-	for _,r in ipairs(manager.receptors) do
-		manager.removereceptors(r)
-	end
 	manager.reset()
-
 end
 
 function manager.explosion(idx, row, hit)
@@ -263,7 +287,7 @@ function manager.update()
 	local hitonrow = {}
 	local pendingdeletion = {}
 
-	local queuedjudge = nil
+	local queuedjudge = {}
 
 	table.sort(manager.notes, function(a,b)
 		if a.created and b.created then
@@ -281,70 +305,89 @@ function manager.update()
 
 		else
 
-			n:update()		
+			n:update()	
 
-			if n.judge then -- force a judgement if the note says we should
-				queuedjudge = n.judge
-				n.judge = nil
-			end
+			if manager.level.autoplay then
 
-			local badhitwindow = manager.level.hitwindows[3][2]
+				local ishit = n:autoplay()
 
-			if (conductor.seconds - n.endsec > badhitwindow) then -- note is missed since player can't hit it anymore, no need to check for input
+				if ishit then
+					manager.level.judge('perfect')
+					manager.explosion(n.row, rowtoreceptordir[n.row], 'perfect')
+				end
 
-				if not n.dontmiss then
+			else
 
-					if not n.missed then
-						n.missed = true
-						manager.level.judge('miss')
+				if n.judge then -- force a judgement if the note says we should
+
+					queuedjudge[#queuedjudge+1] = n.judge
+					n.judge = nil
+
+				end
+
+				local badhitwindow = manager.level.hitwindows[3][2]
+
+				if (conductor.seconds - n.endsec > badhitwindow) then -- note is missed since player can't hit it anymore, no need to check for input
+
+					if not n.dontmiss then
+
+						if not n.missed then
+							n.missed = true
+							manager.level.judge('miss')
+						end
+
 					end
 
-				end
-
-				if not n.dontdisappear then
-					n:alphatransition(conductor.seconds - badhitwindow - n.endsec, 1, -1, 0.125)
-				end
-
-				local removaltime = conductor.seconds - badhitwindow - n.endsec
-
-				if n.type == 'hold' then
-					removaltime = 0
-					if not n.holding then
-						removaltime = conductor.seconds - n.stopholdsec
+					if not n.dontdisappear then
+						n:alphatransition(conductor.seconds - badhitwindow - n.endsec, 1, -1, 0.125)
 					end
-				end
 
-				if removaltime >= 0.125 then
-					pendingdeletion[#pendingdeletion+1] = i
-				end
+					local removaltime = conductor.seconds - badhitwindow - n.endsec
 
-			else -- not missed yet, lets check for input
+					if n.type == 'hold' then
+						removaltime = 0
+						if not n.holding then
+							removaltime = conductor.seconds - n.stopholdsec
+						end
+					end
 
-				if n.checkhit then -- sometimes we might want to not check the notes for a hit. if this is false or nil, we wont check for hit
+					if removaltime >= 0.125 then
+						pendingdeletion[#pendingdeletion+1] = i
+					end
 
-					if not hitonrow[n.row] then
+				else -- not missed yet, lets check for input
 
-						local row = rowtoreceptordir[n.row]
+					if n.checkhit then -- sometimes we might want to not check the notes for a hit. if this is false or nil, we wont check for hit
 
-						if input.getkey(row) == 1 then -- hit detection
+						if not hitonrow[n.row] then
 
-							local diff = conductor.seconds - n.endsec
-							local ishit = manager.level.inrange(diff)
+							local row = rowtoreceptordir[n.row]
 
-							if ishit then
+							if input.getkey(row) == 1 then -- hit detection
 
-								local didhit, newjudgement = n:hit(ishit)
+								local diff = conductor.seconds - n.endsec
+								local ishit = manager.level.inrange(diff)
 
-								if didhit then -- if we hit, we do all these stuff. if not, we dont do anything!
+								if ishit then
 
-									if n.type ~= 'hold' then
-										manager.level.judge(newjudgement)
-										manager.explosion(n.row, row, newjudgement)
-									else
-										manager.explosion(n.row, row, ishit)
+									local didhit, newjudgement = n:hit(ishit)
+
+									if didhit then -- if we hit, we do all these stuff. if not, we dont do anything!
+
+										if n.type ~= 'hold' then
+											manager.level.judge(newjudgement)
+											manager.explosion(n.row, row, newjudgement)
+
+											if n.type == 'mine' then
+												manager.exploreal(n.receptor.visual.absx, n.receptor.visual.absy)
+											end
+										else
+											manager.explosion(n.row, row, ishit)
+										end
+
+										hitonrow[n.row] = true -- dont remove multiple arrows on the same row in the same frame
+
 									end
-
-									hitonrow[n.row] = true -- dont remove multiple arrows on the same row in the same frame
 
 								end
 
@@ -375,8 +418,8 @@ function manager.update()
 		table.remove(manager.notes, pendingdeletion[i])
 	end
 
-	if queuedjudge then
-		manager.level.judge(queuedjudge)
+	for _,j in ipairs(queuedjudge) do
+		manager.level.judge(j)
 	end
 
 	-- explosions
@@ -412,6 +455,15 @@ function manager.update()
 
 		end
 
+	end
+
+	-- lmao
+	for i=#manager.realexplo,1,-1 do
+		local e = manager.realexplo[i]
+		if e.spritename == 'blank' then
+			e.Remove()
+			table.remove(manager.realexplo,i)
+		end
 	end
 
 end

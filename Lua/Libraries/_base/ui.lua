@@ -4,6 +4,8 @@ local easing = require 'easing'
 
 function ui.init()
 
+	ui.alpha = 1
+
 	-- accuracy
 	do
 
@@ -87,18 +89,35 @@ function ui.init()
 	-- judgement
 	do
 
-		ui.judgetext = CreateSprite('empty', 'game_ui')
-		ui.judgetext.Scale(0.5,0.5)
-		ui.judgetext.y = 380
-		ui.judgetext['timer'] = 0
+		ui.judger = CreateSprite('empty', 'game_ui')
+		ui.judger.Scale(0.5,0.5)
+		ui.judger.y = 380
+		ui.judger['timer'] = 0
 
 	end
 
-	-- useful functions
-	function ui.setalpha(alpha)
-		ui.miss.alpha = alpha
-		ui.acc.alpha = alpha
-		ui.hpbar.setalpha(alpha)
+	-- combo
+	do
+
+		ui.combo = CreateText('[instant]0', {0,0}, 640, 'game_ui')
+		ui.combo.SetFont('uidamagetransp')
+		ui.combo.progressmode = 'none'
+		ui.combo.HideBubble()
+		ui.combo.Scale(0.75,0.75)
+		ui.combo.color = {1,1,1,0}
+		ui.combo['timer'] = 0
+
+	end
+
+	-- autoplay
+	do
+
+		ui.autoplay = CreateText('', {0,0}, 640, 'game_ui')
+		ui.autoplay.SetFont('monster')
+		ui.autoplay.progressmode = 'none'
+		ui.autoplay.HideBubble()
+		ui.autoplay.color = {1,1,1,0}
+
 	end
 
 	ui.reset()
@@ -108,7 +127,6 @@ end
 function ui.load()
 
 	ui.reset()
-
 	ui.setalpha(1)
 
 end
@@ -116,25 +134,78 @@ end
 function ui.reset()
 
 	ui.setalpha(0)
-
-	ui.updateacc(100)
-	ui.updatemiss(0)
-
+	ui.setoffset(0,0)
+	
 	ui.hpbar.fillinstant(1)
 	ui.hpbar.fill.yscale = (ui.hpbar.frame.height-6)*ui.hpbar.frame.yscale
 
+	ui.judger['timer'] = -math.huge
+	ui.judger.alpha = 0
+
+	ui.combo['timer'] = -math.huge
+	ui.combo.alpha = 0
+
+	ui.updatecombo()
+	ui.updateacc()
+	ui.updatemiss()
+
 end
 
-function ui.updateacc(acc)
+function ui.setoffset(x,y)
 
-	acc = tonumber(acc) or 100
+	ui.acc.x = 10 + x
+	ui.acc.y = 10 + y
+
+	ui.miss.x = 10 + x
+	ui.miss.y = 10 + ui.acc.GetTextHeight()*ui.acc.yscale + y
+
+	ui.hpbar.parent.x = 10 + x
+	ui.hpbar.parent.y = 470 + y
+
+	ui.judger.x = 320 + x
+	ui.judger.y = 380 + y
+
+	ui.combo.x = 320 - ui.combo.GetTextWidth()*ui.combo.xscale/2 + x
+	ui.combo.y = 330 + y
+
+	ui.autoplay.SetText('[instant]AUTOPLAY ON')
+	ui.autoplay.x = 640 - ui.autoplay.GetTextWidth() - 8 + x
+	ui.autoplay.y = 8 + y
+	if not ui.level.autoplay then ui.autoplay.SetText('') end
+
+end
+
+function ui.updatecombo()
+
+	ui.combo.x = ui.combo.x + ui.combo.GetTextWidth()*ui.combo.xscale/2
+	ui.combo.SetText('[instant]'..ui.level.combo)
+	ui.combo.x = ui.combo.x - ui.combo.GetTextWidth()*ui.combo.xscale/2 + 1 -- i have no idea why what im doing above is shifting the text by 1 pixel every time but
+
+	ui.combo['timer'] = 0
+
+end
+
+function ui.updateacc()
+
+	acc = tonumber(ui.level.acc) or 100
 	ui.acc.SetText('[instant]Acc: '..string.format('%.2f', acc)..'%')
 
 end
 
-function ui.updatemiss(miss)
+function ui.setalpha(alpha, force)
 
-	miss = tonumber(miss) or 0
+	ui.alpha = alpha
+
+	ui.miss.alpha = alpha
+	ui.acc.alpha = alpha
+	ui.autoplay.alpha = alpha
+	ui.hpbar.setalpha(alpha)
+
+end
+
+function ui.updatemiss()
+
+	local miss = ui.level.misses
 
 	local newstr = '[instant]' .. miss .. ' miss'
 
@@ -153,14 +224,26 @@ function ui.update()
 		ui.hpbar.fillinstant(pr)
 	end
 
-	ui.judgetext['timer'] = ui.judgetext['timer'] + 1
-	local timer = ui.judgetext['timer']
+	ui.judger['timer'] = ui.judger['timer'] + Time.dt
+	local timer = ui.judger['timer']
 
-	if timer < 10 then
-		ui.judgetext.xscale = easing.outSine(timer, 0.6, 0.5-0.55, 10)
-		ui.judgetext.yscale = ui.judgetext.xscale
-	elseif timer > 80 then
-		ui.judgetext.alpha = easing.inSine(math.min(timer-80, 30), 1, -1, 30)
+	ui.judger.alpha = ui.alpha
+	if timer < 1/6 then
+		ui.judger.xscale = easing.outSine(timer, 0.55, -0.05, 1/6)
+		ui.judger.yscale = ui.judger.xscale
+	elseif timer > 8/6 then
+		ui.judger.alpha = easing.inSine(math.min(timer-8/6, 1/4), 1, -1, 1/4) * ui.alpha
+	end
+
+	if ui.level.combo < 10 then
+		ui.combo.alpha = 0
+	else
+		ui.combo['timer'] = ui.combo['timer'] + Time.dt
+		local timer = ui.combo['timer']
+		ui.combo.alpha = ui.alpha
+		if timer > 8/6 then
+			ui.combo.alpha = easing.inSine(math.min(timer-8/6, 1/4), 1, -1, 1/4) * ui.alpha
+		end
 	end
 
 end

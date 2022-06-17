@@ -3,6 +3,10 @@ local reader = {}
 local level = require '_base/level'
 local conductor = require '_base/conductor'
 
+local function err_FILENOTFOUND(file)
+	error('Couldn\'t find ' .. file .. ' in the chart\'s folder! Are you sure it\'s there?', -1)
+end
+
 local function findbpmhere(line)
 	local newline = line:gsub('#BPMS:', ''):gsub(',',''):gsub(';','')
 
@@ -25,11 +29,14 @@ function reader.load(folder, setstate)
 	local t = {} -- final table with all the notes and stuff
 	t.notes = {}
 	t.bpms = {}
-	t.chartname = folder:gsub(ChartPath, '')
+	t.chartname = folder:gsub(ChartPath, ''):sub(2,-1)
 
-	local chartname = folder .. '/music.sm'
+	local chartname = folder .. '/main.sm'
 	local scriptname = folder .. '/main.lua'
-	local musicname = folder .. '/music.ogg'
+	local musicname = folder .. '/main.ogg'
+
+	if not Misc.FileExists(musicname) then err_FILENOTFOUND('main.ogg') end
+	if not Misc.FileExists(chartname) then err_FILENOTFOUND('main.sm') end
 
 	local chart = Misc.OpenFile(chartname, 'r')
 
@@ -53,7 +60,7 @@ function reader.load(folder, setstate)
 
 		if not line then break end -- ???????????????????????
 
-		-- dumb solution because i only need the bpm changes and notes from the chart
+		-- dumb solution because i only need the bpm changes, offset and notes from the chart
 		if line:find '#BPMS' then
 			-- getting the bpms
 
@@ -99,7 +106,7 @@ function reader.load(folder, setstate)
 
 			elseif reading == 2 then -- notes
 				
-				if #line > 3 then -- only take into account the lines that are 4 characters or more; in arrowvortex you can also make charts with >4 notes??
+				if #line > 3 then -- only take into account the lines that are 4 characters or more; in arrowvortex you can also make charts with >4 notes        so
 
 					lineinmeasure = lineinmeasure + 1
 
@@ -127,7 +134,7 @@ function reader.load(folder, setstate)
 								holdheads[j] = nil
 							end
 
-						elseif c == 'M' or c == 'm' then -- mine
+						elseif c == 'M' then -- mine
 
 							tempnotes[#tempnotes+1] = {type = 'mine', line = lineinmeasure, measure = measure, row = j}
 
@@ -181,7 +188,6 @@ function reader.load(folder, setstate)
 
 	level.load(t)
 
-	Audio.PlaySound 'menuconfirm'
 	setstate(5)
 
 end

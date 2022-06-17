@@ -16,6 +16,13 @@ local function setstate(newstate)
 
 	curstate = newstate
 	states[curstate].init()
+
+	if curstate < 5 then
+		NewAudio.Unpause('menu_music')
+	else
+		NewAudio.Pause('menu_music')
+	end
+
 end
 
 function manager.init()

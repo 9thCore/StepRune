@@ -103,7 +103,7 @@ function conductor.update()
 
 		if thisevent then -- make sure we didnt reach the end of the event table
 
-			while conductor.seconds >= thisevent.second do
+			while conductor.seconds >= thisevent.second do -- run every eligible event in the same frame
 
 				thisevent.func(table.unpack(thisevent.params))
 				conductor.currentevent = conductor.currentevent + 1

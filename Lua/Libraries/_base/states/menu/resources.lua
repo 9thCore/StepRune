@@ -12,6 +12,7 @@ resources.heart.Scale(1.5, 1.5)
 resources.heart.color = {1,0,0}
 resources.heart.MoveTo(40, 341)
 resources.heartTarget = 301
+
 resources.heartSelected = 1
 
 resources.text = {}
@@ -32,7 +33,21 @@ end
 resources.textColorInactive = {1,1,1}
 resources.textColorActive = {1,1,0.6}
 
+function resources.fittext()
 
+	for _,t in ipairs(resources.text) do
+		local this = t[1]
+
+		this.xscale = 2
+
+		local w = this.GetTextWidth()
+		local m = math.max(w*this.xscale/500, 1)
+
+		this.xscale = this.xscale/m
+
+	end
+
+end
 
 function resources.settext(t)
 
@@ -45,6 +60,29 @@ function resources.settext(t)
 
 	end
 
+	resources.fittext()
+
+end
+
+function resources.settextwithsuffix(t)
+
+	for idx=1,7 do
+
+		if t[idx] then
+
+			local text = tostring(t[idx][1] or '')
+
+			local final = textprefix .. text .. (t[idx][2] or '')
+
+			resources.text[idx][1].SetText(final)
+			resources.text[idx][2] = text
+
+		end
+
+	end
+
+	resources.fittext()
+
 end
 
 function resources.setcolor(idx, col)
@@ -52,7 +90,6 @@ function resources.setcolor(idx, col)
 	if idx < 1 or idx > #resources.text then return end
 
 	resources.text[idx][1].color = col
-	resources.text[idx][1].SetText(textprefix .. resources.text[idx][2])
 
 end
 
@@ -77,6 +114,7 @@ function resources.trymove(dir)
 
 	if #resources.text[new][2] < 1 then return end
 
+	Audio.PlaySound('menumove')
 	resources.setselect(new)
 
 end
@@ -94,7 +132,6 @@ end
 function resources.update()
 
 	resources.checkmove()
-
 	resources.heart.y = easing.linear(1/5, resources.heart.y, resources.heartTarget - resources.heart.y, 1)
 
 end

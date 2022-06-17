@@ -5,6 +5,7 @@ wavetimer = math.huge
 arenasize = {155, 130}
 enemies = {}
 enemypositions = {}
+noscalerotationbug = true
 
 -- cover, also pretty much base layer for the game and menu
 CreateLayer('menu_cover', 'Top', false)
@@ -20,24 +21,25 @@ local reader = loadbase 'reader'
 local conductor = loadbase 'conductor'
 local level = loadbase 'level'
 local ui = loadbase 'ui'
-local lockdown = loadbase 'lockdown'
-
-local env
 
 -- initialize
 function EncounterStarting()
 
 	ChartPath = 'Charts'
 
+	NewAudio.CreateChannel('menu_music')
+	NewAudio.PlayMusic('menu_music', 'menu')
+	NewAudio.SetVolume('menu_music', 0.3)
+
 	Audio.Stop()
 	State 'NONE'
-
-	statemanager.init()
+	
 	level.init()
+
 	conductor.reset()
 	ui.reset()
 	
-	env = lockdown.getenv()
+	statemanager.init()
 
 end
 

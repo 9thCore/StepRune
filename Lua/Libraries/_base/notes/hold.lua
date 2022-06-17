@@ -20,6 +20,7 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 		self.receptor = receptor
 		self.realalpha = 0
+		self.rotoffset = 0
 
 		self.parent = CreateSprite('empty', 'game_notepart')
 		self.parent.SetParent(receptor.parent)
@@ -174,6 +175,11 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 				end
 
+				self:fixrot()
+				for _,n in ipairs(self.nt) do
+					n:fixrot()
+				end
+
 			end
 
 			function self:hit(oldjudgement)
@@ -185,6 +191,19 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 					return true, nil -- we did hit it
 				end
 				return false, nil -- we didnt hit it
+			end
+
+			function self:autoplay()
+				if conductor.seconds >= self.endsec then
+					self.holdstartsec = self.endsec
+					self.holding = true
+					self.grace = 9999 -- :p
+
+					if conductor.seconds >= self.holdendsec then
+						return true
+					end
+				end
+				return false
 			end
 
 			function self:setcolor(color)
@@ -215,6 +234,18 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 			end
 
+		end
+
+		function self:rotate(rot, additive)
+			additive = not not additive
+
+			self.rotoffset = rot + ((additive and self.rotoffset) or 0)
+			self:fixrot()
+		end
+
+		function self:fixrot()
+			self.sprite.rotation = receptor.visual.rotation + self.rotoffset
+			self.holdparent.rotation = 0 -- TODO: make this the correct value when full receptor rotation is added
 		end
 
 		function self:remove()

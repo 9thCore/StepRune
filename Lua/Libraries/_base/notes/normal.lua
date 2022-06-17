@@ -17,6 +17,7 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 		self.receptor = receptor
 		self.realalpha = 0
+		self.rotoffset = 0
 
 		self.parent = CreateSprite('empty', 'game_notepart')
 		self.parent.SetParent(receptor.parent)
@@ -58,6 +59,9 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 					n:alphatransition(sofar, 0, 1, 0.125)
 				end
 
+				-- fix rotation
+				self:fixrot()
+
 			end
 
 			function self:hit(oldjudgement)
@@ -71,6 +75,14 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 			end
 
+			function self:autoplay()
+				if conductor.seconds >= self.endsec then
+					self:hit()
+					return true
+				end
+				return false
+			end
+
 		else
 
 			function self:copy(note)
@@ -80,6 +92,17 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 
 			end
 
+		end
+
+		function self:rotate(rot, additive)
+			additive = not not additive
+
+			self.rotoffset = rot + ((additive and self.rotoffset) or 0)
+			self:fixrot()
+		end
+
+		function self:fixrot()
+			self.sprite.rotation = receptor.visual.rotation + self.rotoffset
 		end
 
 		function self:remove()
