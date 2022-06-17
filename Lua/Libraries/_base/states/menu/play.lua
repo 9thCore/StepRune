@@ -5,6 +5,7 @@ local reader = require '_base/reader'
 local save = require '_base/save'
 local level = require '_base/level'
 local save = require '_base/save'
+local ui = require '_base/ui'
 
 local totalcnt = 0
 local page = 1
@@ -55,6 +56,10 @@ local function nextpage(dir)
 end
 
 function play.init()
+
+	ui.diff.alpha = 1
+	ui.updatediff()
+	ui.setoffset(0,0)
 
 	resources.settextwithsuffix(getlist(0))
 	resources.setselect(1, true)

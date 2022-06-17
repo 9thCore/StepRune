@@ -66,7 +66,6 @@ function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease
 			end
 
 			function self:hit(oldjudgement)
-				NewAudio.PlaySound('boom', 'boom', false, 0.5)
 				self:remove()
 				return true, 'miss'
 			end

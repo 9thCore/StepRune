@@ -316,6 +316,22 @@ function manager.update()
 					manager.explosion(n.row, rowtoreceptordir[n.row], 'perfect')
 				end
 
+				if n.type == 'mine' then
+
+					local badhitwindow = manager.level.hitwindows[3][2]
+					if conductor.seconds - n.endsec > badhitwindow then
+						n:alphatransition(conductor.seconds - badhitwindow - n.endsec, 1, -1, 0.125)
+
+						local removaltime = conductor.seconds - badhitwindow - n.endsec
+
+						if removaltime >= 0.125 then
+							pendingdeletion[#pendingdeletion+1] = i
+						end
+
+					end
+
+				end
+
 			else
 
 				if n.judge then -- force a judgement if the note says we should
@@ -327,7 +343,7 @@ function manager.update()
 
 				local badhitwindow = manager.level.hitwindows[3][2]
 
-				if (conductor.seconds - n.endsec > badhitwindow) then -- note is missed since player can't hit it anymore, no need to check for input
+				if conductor.seconds - n.endsec > badhitwindow then -- note is missed since player can't hit it anymore, no need to check for input
 
 					if not n.dontmiss then
 
@@ -378,7 +394,8 @@ function manager.update()
 											manager.level.judge(newjudgement)
 											manager.explosion(n.row, row, newjudgement)
 
-											if n.type == 'mine' then
+											if n.type == 'mine' and manager.level.mineexplos then
+												NewAudio.PlaySound('boom', 'boom', false, 0.5)
 												manager.exploreal(n.receptor.visual.absx, n.receptor.visual.absy)
 											end
 										else

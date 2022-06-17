@@ -115,8 +115,21 @@ function ui.init()
 		ui.autoplay = CreateText('', {0,0}, 640, 'game_ui')
 		ui.autoplay.SetFont('monster')
 		ui.autoplay.progressmode = 'none'
+		ui.autoplay.Scale(1.5,1.5)
 		ui.autoplay.HideBubble()
 		ui.autoplay.color = {1,1,1,0}
+
+	end
+
+	-- difficulty
+	do
+
+		ui.diff = CreateText('', {0,0}, 640, 'game_ui')  -- i probably shouldve made a function that generates these at this point but the sunk cost fallacy won't allow me to
+		ui.diff.SetFont('monster')
+		ui.diff.progressmode = 'none'
+		ui.diff.Scale(1.5,1.5)
+		ui.diff.HideBubble()
+		ui.diff.color = {1,1,1,0}
 
 	end
 
@@ -134,7 +147,6 @@ end
 function ui.reset()
 
 	ui.setalpha(0)
-	ui.setoffset(0,0)
 	
 	ui.hpbar.fillinstant(1)
 	ui.hpbar.fill.yscale = (ui.hpbar.frame.height-6)*ui.hpbar.frame.yscale
@@ -145,10 +157,28 @@ function ui.reset()
 	ui.combo['timer'] = -math.huge
 	ui.combo.alpha = 0
 
+	ui.autoplay.SetText('[instant]AUTOPLAY ON')
+
+	ui.updatediff()
 	ui.updatecombo()
 	ui.updateacc()
 	ui.updatemiss()
 
+	ui.setoffset(0,0)
+
+	if not ui.level.autoplay then ui.autoplay.SetText('') end
+
+end
+
+function ui.updatediff()
+	local diffcamel = ui.level.difficulty
+	for _,d in ipairs(ui.level.difficulties) do
+		if ui.level.difficulty == d.difficulty then
+			diffcamel = d.camel
+			break
+		end
+	end
+	ui.diff.SetText('[instant]' .. diffcamel)
 end
 
 function ui.setoffset(x,y)
@@ -157,7 +187,7 @@ function ui.setoffset(x,y)
 	ui.acc.y = 10 + y
 
 	ui.miss.x = 10 + x
-	ui.miss.y = 10 + ui.acc.GetTextHeight()*ui.acc.yscale + y
+	ui.miss.y = 14 + ui.acc.GetTextHeight()*ui.acc.yscale + y
 
 	ui.hpbar.parent.x = 10 + x
 	ui.hpbar.parent.y = 470 + y
@@ -168,10 +198,11 @@ function ui.setoffset(x,y)
 	ui.combo.x = 320 - ui.combo.GetTextWidth()*ui.combo.xscale/2 + x
 	ui.combo.y = 330 + y
 
-	ui.autoplay.SetText('[instant]AUTOPLAY ON')
-	ui.autoplay.x = 640 - ui.autoplay.GetTextWidth() - 8 + x
-	ui.autoplay.y = 8 + y
-	if not ui.level.autoplay then ui.autoplay.SetText('') end
+	ui.diff.x = 640 - ui.diff.GetTextWidth()*ui.diff.xscale - 8 + x
+	ui.diff.y = 8 + y
+
+	ui.autoplay.x = 640 - ui.autoplay.GetTextWidth()*ui.autoplay.xscale - 8 + x
+	ui.autoplay.y = 12 + ui.diff.GetTextHeight()*ui.diff.yscale + y
 
 end
 
@@ -196,6 +227,7 @@ function ui.setalpha(alpha, force)
 
 	ui.alpha = alpha
 
+	ui.diff.alpha = alpha
 	ui.miss.alpha = alpha
 	ui.acc.alpha = alpha
 	ui.autoplay.alpha = alpha

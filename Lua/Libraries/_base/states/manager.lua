@@ -1,6 +1,7 @@
 local manager = {}
 
 local resources = require '_base/states/menu/resources'
+local ui = require '_base/ui'
 
 local states = {
 	'menu/main',
@@ -12,6 +13,11 @@ local states = {
 local curstate = 1
 
 local function setstate(newstate)
+
+	if newstate ~= 5 then
+		ui.setalpha(0)
+	end
+
 	resources.settext{}
 
 	curstate = newstate

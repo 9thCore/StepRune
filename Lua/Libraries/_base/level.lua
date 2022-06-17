@@ -68,6 +68,7 @@ level.combo = 0
 level.hp = 100
 
 level.autoplay = false
+level.mineexplos = false
 
 level.difficulty = 'NORMAL' -- TODO: make this the difficulty you select in the options when that's implemented
 level.difficulties = {
@@ -360,7 +361,7 @@ function level.update()
 
 	if not conductor.playing then return end
 
-	if Input.GetKey('F1') == 1 then
+	if Input.GetKey('F1') == 1 then -- TODO: change this into holding Esc for time
 		level.exit()
 		return
 	end

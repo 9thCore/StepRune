@@ -36,8 +36,16 @@ explain = {
 	end,
 	autoplay = function()
 
-		local str = 'Whether the mod should play for you.\n[color:ff0000]You will not get a grade if you use this![color]\nAutoplay is currently %s.'
+		local str = 'Whether the mod should play for you.\n[color:ff0000]You will not get a grade if you use this![color]'
 		local final = string.format(str, (level.autoplay and 'on') or 'off')
+
+		explain.set(final)
+
+	end,
+	mineexplo = function()
+
+		local str = 'Whether an explosion should be created when a mine is hit.\nShould probably leave this off.'
+		local final = string.format(str, (level.mineexplos and 'on') or 'off')
 
 		explain.set(final)
 
@@ -47,21 +55,30 @@ explain = {
 
 local settext
 settext = {
-	autoplay = function()
-
-		local str = '[instant]Autoplay [' .. ((level.autoplay and 'ON') or 'OFF') .. ']'
-
-		resources.text[3][1].SetText(str)
-		resources.text[3][2] = str
-
+	set = function(idx, str)
+		resources.text[idx][1].SetText(str)
+		resources.text[idx][2] = str
 	end,
 	diff = function()
 
 		local diffCamel = diffs[diffi].camel
 		local full = '[instant]Difficulty [' .. diffCamel .. ']'
 
-		resources.text[2][1].SetText(full)
-		resources.text[2][2] = full
+		settext.set(2, full)
+
+	end,
+	autoplay = function()
+
+		local str = '[instant]Autoplay [' .. ((level.autoplay and 'ON') or 'OFF') .. ']'
+
+		settext.set(3, str)
+
+	end,
+	mineexplo = function()
+
+		local str = '[instant]Mine explosions [' .. ((level.mineexplos and 'ON') or 'OFF') .. ']'
+
+		settext.set(4, str)
 
 	end
 }
@@ -98,6 +115,8 @@ function options.init()
 
 	settext.autoplay()
 
+	settext.mineexplo()
+
 	explainer.alpha = 1
 
 end
@@ -114,6 +133,8 @@ function options.update(setstate)
 			explain.diff()
 		elseif resources.heartSelected == 3 then
 			explain.autoplay()
+		elseif resources.heartSelected == 4 then
+			explain.mineexplo()
 		end
 	end
 
@@ -150,6 +171,28 @@ function options.update(setstate)
 			explain.autoplay()
 
 			save.var(save.autoplayname, level.autoplay)
+
+			Audio.PlaySound('menuconfirm')
+
+		elseif resources.heartSelected == 3 then
+
+			level.autoplay = not level.autoplay
+
+			settext.autoplay()
+			explain.autoplay()
+
+			save.var(save.autoplayname, level.autoplay)
+
+			Audio.PlaySound('menuconfirm')
+
+		elseif resources.heartSelected == 4 then
+
+			level.mineexplos = not level.mineexplos
+
+			settext.mineexplo()
+			explain.mineexplo()
+
+			save.var(save.boomname, level.mineexplos)
 
 			Audio.PlaySound('menuconfirm')
 

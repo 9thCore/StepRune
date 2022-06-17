@@ -5,6 +5,7 @@ local get = GetAlMightyGlobal
 
 save.diffname = 'STEPRUNE_SAVE_DIFFICULTY'
 save.autoplayname = 'STEPRUNE_SAVE_AUTOPLAY'
+save.boomname = 'STEPRUNE_SAVE_MINEGOBOOM'
 
 function save.encoderank(level, diff)
 	
