@@ -58,6 +58,7 @@ end
 function play.init()
 
 	ui.diff.alpha = 1
+	if level.autoplay then ui.autoplay.alpha = 1 ui.autoplay.SetText('[instant]AUTOPLAY ON') end
 	ui.updatediff()
 	ui.setoffset(0,0)
 

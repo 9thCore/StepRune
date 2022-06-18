@@ -8,6 +8,8 @@ local diff = 'NORMAL'
 local diffi = 1
 local diffs
 
+local numholdtime = 0
+
 local explainer = CreateText('', {0,0}, 640, 'menu_ui')
 explainer.progressmode = 'none'
 explainer.HideBubble()
@@ -26,6 +28,12 @@ explain = {
 		explainer.y = h-8
 
 	end,
+	offset = function()
+
+		local final = 'Additional offset to apply to the song, in ms.\nChange this if the notes and song don\'t seem to sync.\nLower offset makes the song start later while higher offset makes the song start earlier.\nHold CANCEL to change by 10 instead of 1.'
+		explain.set(final)
+
+	end,
 	diff = function()
 
 		local base = 'Your desired difficulty. Higher difficulty gives a lower hit window for notes while a lower difficulty raises it.\n%s gives %.3fs for a [color:38BEFF]PERFECT[color], %.3fs for a [color:DBC517]GREAT[color] and %.3fs for a [color:FF3F44]BAD[color].\nNote that grades are different between difficulties.'
@@ -36,17 +44,13 @@ explain = {
 	end,
 	autoplay = function()
 
-		local str = 'Whether the mod should play for you.\n[color:ff0000]You will not get a grade if you use this![color]'
-		local final = string.format(str, (level.autoplay and 'on') or 'off')
-
+		local final = 'Whether the mod should play for you.\n[color:ff0000]You will not get a grade if you use this![color]'
 		explain.set(final)
 
 	end,
 	mineexplo = function()
 
-		local str = 'Whether an explosion should be created when a mine is hit.\nShould probably leave this off.'
-		local final = string.format(str, (level.mineexplos and 'on') or 'off')
-
+		local final = 'Whether an explosion should be created when a mine is hit.\nShould probably leave this off.'
 		explain.set(final)
 
 	end
@@ -59,23 +63,29 @@ settext = {
 		resources.text[idx][1].SetText(str)
 		resources.text[idx][2] = str
 	end,
+	offset = function()
+
+		local str = '[instant]Offset <' .. tostring(level.useroffset) .. '>'
+		settext.set(2, str)
+
+	end,
 	diff = function()
 
 		local diffCamel = diffs[diffi].camel
 		local full = '[instant]Difficulty [' .. diffCamel .. ']'
-		settext.set(2, full)
+		settext.set(3, full)
 
 	end,
 	autoplay = function()
 
 		local str = '[instant]Autoplay [' .. ((level.autoplay and 'ON') or 'OFF') .. ']'
-		settext.set(3, str)
+		settext.set(4, str)
 
 	end,
 	mineexplo = function()
 
 		local str = '[instant]Mine explosions [' .. ((level.mineexplos and 'ON') or 'OFF') .. ']'
-		settext.set(4, str)
+		settext.set(5, str)
 
 	end
 
@@ -108,6 +118,8 @@ function options.init()
 		'Back'
 	}
 
+	settext.offset()
+
 	grabdiffs()
 	settext.diff()
 
@@ -128,12 +140,20 @@ function options.update(setstate)
 		explain.set('')
 
 		if resources.heartSelected == 2 then
-			explain.diff()
+			explain.offset()
 		elseif resources.heartSelected == 3 then
-			explain.autoplay()
+			explain.diff()
 		elseif resources.heartSelected == 4 then
+			explain.autoplay()
+		elseif resources.heartSelected == 5 then
 			explain.mineexplo()
 		end
+	end
+
+	if Input.Left > 0 or Input.Right > 0 then
+		numholdtime = numholdtime + 1
+	else
+		numholdtime = 0
 	end
 
 	if Input.Confirm == 1 then
@@ -142,7 +162,7 @@ function options.update(setstate)
 
 			exit(setstate)
 
-		elseif resources.heartSelected == 2 then -- Difficulty
+		elseif resources.heartSelected == 3 then -- Difficulty
 
 			diffi = diffi + 1
 			if diffi > #diffs then
@@ -161,29 +181,18 @@ function options.update(setstate)
 
 			Audio.PlaySound('menuconfirm')
 
-		elseif resources.heartSelected == 3 then
-
-			level.autoplay = not level.autoplay
-
-			settext.autoplay()
-			explain.autoplay()
-
-			save.var(save.autoplayname, level.autoplay)
-
-			Audio.PlaySound('menuconfirm')
-
-		elseif resources.heartSelected == 3 then
-
-			level.autoplay = not level.autoplay
-
-			settext.autoplay()
-			explain.autoplay()
-
-			save.var(save.autoplayname, level.autoplay)
-
-			Audio.PlaySound('menuconfirm')
-
 		elseif resources.heartSelected == 4 then
+
+			level.autoplay = not level.autoplay
+
+			settext.autoplay()
+			explain.autoplay()
+
+			save.var(save.autoplayname, level.autoplay)
+
+			Audio.PlaySound('menuconfirm')
+
+		elseif resources.heartSelected == 5 then
 
 			level.mineexplos = not level.mineexplos
 
@@ -194,6 +203,38 @@ function options.update(setstate)
 
 			Audio.PlaySound('menuconfirm')
 
+		end
+
+	end
+
+	if resources.heartSelected == 2 then
+
+		local change = 1
+		if Input.Cancel > 0 then
+			change = 10
+		end
+
+		local pl = Input.Left == 1
+		if (numholdtime > 15 and numholdtime % 5 == 0) and Input.Left > 0 then
+			pl = true
+		end
+
+		local pr = Input.Right == 1
+		if (numholdtime > 15 and numholdtime % 5 == 0) and Input.Right > 0 then
+			pr = true
+		end
+
+		if pl then
+			level.useroffset = level.useroffset - change
+		elseif pr then
+			level.useroffset = level.useroffset + change
+		end
+
+		if pl or pr then
+			settext.offset()
+			Audio.PlaySound('menumove')
+
+			save.var(save.offsetname, level.useroffset)
 		end
 
 	end

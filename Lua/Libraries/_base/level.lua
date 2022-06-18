@@ -69,6 +69,7 @@ level.hp = 100
 
 level.autoplay = false
 level.mineexplos = false
+level.useroffset = 0
 
 level.difficulty = 'NORMAL' -- TODO: make this the difficulty you select in the options when that's implemented
 level.difficulties = {
@@ -166,6 +167,8 @@ function level.readsave()
 
 	level.difficulty = savet.diff or level.difficulty
 	level.autoplay = savet.autoplay or level.autoplay
+	level.mineexplos = savet.boom or level.mineexplos
+	level.useroffset = savet.offset or level.useroffset
 
 end
 
@@ -347,7 +350,7 @@ function level.load(t)
 	NewAudio.PlayMusic('game_music', '../' .. ChartPath .. '/' .. t.chartname .. '/main')
 	NewAudio.Pause('game_music')
 
-	conductor.addevent(0, t.songoffset, NewAudio.Unpause, 'game_music')
+	conductor.addevent(0, t.songoffset + level.useroffset/1000, NewAudio.Unpause, 'game_music')
 
 	-- finish
 	conductor.addevent(level.lastbeat, -2, level.finish) -- negative offset because we want this to happen 2 seconds *later*!

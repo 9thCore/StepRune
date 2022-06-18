@@ -28,7 +28,7 @@ function EncounterStarting()
 	ChartPath = 'Charts'
 
 	NewAudio.CreateChannel('menu_music')
-	NewAudio.PlayMusic('menu_music', 'menu')
+	NewAudio.PlayMusic('menu_music', 'menu', true)
 	NewAudio.SetVolume('menu_music', 0.3)
 
 	Audio.Stop()
