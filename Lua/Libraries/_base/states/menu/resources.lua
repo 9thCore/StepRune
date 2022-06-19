@@ -30,6 +30,47 @@ for i=1,7 do
 
 end
 
+do
+
+	resources.steprune = CreateSprite('_base/menu/name', 'menu_ui')
+	resources.steprune.Scale(2,2)
+	resources.steprune.y = 420
+	resources.steprune.alpha = 1
+
+	resources.fountain = {}
+
+	resources.fountain.fills = {}
+	for i=1,2 do
+		resources.fountain.fills[i] = CreateSprite('_base/menu/fountain', 'menu_bg')
+		resources.fountain.fills[i]['dir'] = ((-1)^i)*4
+		resources.fountain.fills[i].Scale(4,4)
+		resources.fountain.fills[i].alpha = 0.5
+		resources.fountain.fills[i].x = resources.fountain.fills[i].x + resources.fountain.fills[i]['dir']*3
+	end
+
+	resources.fountain.edges = {}
+	for i=1,6 do
+		resources.fountain.edges[i] = CreateSprite('_base/menu/fountain_outline', 'menu_bg')
+		resources.fountain.edges[i]['dir'] = 0
+		if i ~= 2 and i ~= 5 then
+			resources.fountain.edges[i]['dir'] = (-1)^i
+		end
+		resources.fountain.edges[i].Scale(4,4)
+		resources.fountain.edges[i].xscale = ((i<4) and -4) or 4
+		resources.fountain.edges[i].alpha = 1
+		resources.fountain.edges[i].color = {1/4,1/4,1/4}
+	end
+
+	resources.fountain.blackfillers = {}
+	for i=1,2 do
+		resources.fountain.blackfillers[i] = CreateSprite('px', 'menu_bg')
+		resources.fountain.blackfillers[i].Scale((640-107)/2,480)
+		resources.fountain.blackfillers[i].color = {0,0,0}
+		resources.fountain.blackfillers[i].x = 320 + ((i-1)*2-1)*(33.5+40)*4
+	end
+
+end
+
 resources.textColorInactive = {1,1,1}
 resources.textColorActive = {1,1,0.6}
 
@@ -47,6 +88,29 @@ function resources.fittext()
 
 	end
 
+end
+
+-- code yoinked from https://github.com/EmmanuelOga/columns/blob/master/utils/color.lua
+local function hsvToRgb(h, s, v, a)
+  local r, g, b
+
+  local i = math.floor(h * 6);
+  local f = h * 6 - i;
+  local p = v * (1 - s);
+  local q = v * (1 - f * s);
+  local t = v * (1 - (1 - f) * s);
+
+  i = i % 6
+
+  if i == 0 then r, g, b = v, t, p
+  elseif i == 1 then r, g, b = q, v, p
+  elseif i == 2 then r, g, b = p, v, t
+  elseif i == 3 then r, g, b = p, q, v
+  elseif i == 4 then r, g, b = t, p, v
+  elseif i == 5 then r, g, b = v, p, q
+  end
+
+  return r * 255, g * 255, b * 255, a * 255
 end
 
 function resources.settext(t)
@@ -133,6 +197,52 @@ function resources.update()
 
 	resources.checkmove()
 	resources.heart.y = easing.linear(1/5, resources.heart.y, resources.heartTarget - resources.heart.y, 1)
+
+	for _,f in ipairs(resources.fountain.fills) do
+
+		local spd = f['dir']*Time.dt*2
+
+		f.x = f.x - spd
+		f.y = f.y + spd
+		f['timer'] = (f['timer'] or 0) + 1
+
+		if f.x > 320+120 then
+			f.x = f.x - 120
+		elseif f.x < 320-120 then
+			f.x = f.x + 120
+		end
+
+		if f.y + 240 > 240+480 then
+			f.y = f.y - 480
+		elseif f.y - 240 < 240-480 then
+			f.y = f.y + 480
+		end
+
+		local r, g, b = hsvToRgb(f['timer']/2/255, 1, ((math.sin(f['timer']/64)*40)+60)/255,1)
+		f.color32 = {
+			r/3,
+			g/3,
+			b/3
+		}
+
+	end
+
+	resources.steprune.x = math.sin(Time.time/2)*6+320
+	resources.steprune.y = math.sin(Time.time/3 + math.pi*0.56)*4+420
+	resources.steprune.rotation = math.sin(Time.time/1.2 - math.pi*0.4)*2
+
+	for _,e in ipairs(resources.fountain.edges) do
+
+		e.x = 320 - 33.5*e.xscale - math.abs(math.sin(Time.time/2))*7*e['dir']
+
+		e['y'] = (e['y'] or e.y) - Time.dt/2
+
+		if e['y'] < 240 - 474 then
+			e['y'] = e['y'] + 474
+		end
+
+		e.y = math.floor(e['y'])
+	end
 
 end
 

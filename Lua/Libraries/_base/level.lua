@@ -289,7 +289,6 @@ function level.exit()
 	NewAudio.Stop('game_music')
 
 	level.reset()
-	playstate.exit()
 
 	level.gamecover.alpha = 0
 	ui.setalpha(0)
@@ -297,6 +296,8 @@ function level.exit()
 
 	notemanager.reset()
 	conductor.reset()
+
+	playstate.exit()
 
 	-- TODO: remove sprites, bullets and text created during chart
 

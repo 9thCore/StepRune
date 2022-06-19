@@ -21,9 +21,9 @@ local function setstate(newstate)
 	resources.settext{}
 
 	curstate = newstate
-	states[curstate].init()
+	states[newstate].init()
 
-	if curstate < 5 then
+	if newstate < 5 then
 		NewAudio.Unpause('menu_music')
 	else
 		NewAudio.Pause('menu_music')
