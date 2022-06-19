@@ -45,10 +45,10 @@ function save.saverank(level, diff, rank)
 
 	local name = save.encoderank(level, diff)
 
+	if get(name) == 'S' then return end -- don't save if we already have an S rank, can't get better than this!
+
 	if rank == 'S' then -- if we have an S rank save it every time, cant get better than an S
-
 		set(name, rank)
-
 	else
 
 		local existingrank = get(name) or 'Z' -- 'Z' string is bigger than every other rank

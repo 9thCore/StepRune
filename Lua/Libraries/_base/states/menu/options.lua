@@ -30,7 +30,7 @@ explain = {
 	end,
 	offset = function()
 
-		local final = 'Additional offset to apply to the song, in ms.\nChange this if the notes and song don\'t seem to sync.\nLower offset makes the song start later while higher offset makes the song start earlier.\nHold CANCEL to change by 10 instead of 1.'
+		local final = 'Additional offset to apply to the song, in ms.\nChange this if the notes and song don\'t seem to sync up.\nLower offset makes the song start later while higher offset makes the song start earlier.\nHold CANCEL to change by 10 instead of 1.'
 		explain.set(final)
 
 	end,

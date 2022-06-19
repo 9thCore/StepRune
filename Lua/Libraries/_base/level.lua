@@ -45,6 +45,14 @@ level.rank.HideBubble()
 level.rank.Scale(16,16)
 level.rank.MoveTo(320-level.rank.GetTextWidth()*level.rank.xscale/2, 240-level.rank.GetTextHeight()*level.rank.yscale/2)
 
+level.belowrank = CreateText('[instant]Good job!', {0,0}, 640, 'game_ui')
+level.belowrank.SetFont('monster')
+level.belowrank.progressmode = 'none'
+level.belowrank.color = {1,1,1}
+level.belowrank.HideBubble()
+level.belowrank.Scale(2,2)
+level.belowrank.y = 80
+
 level.lastbeat = 0
 
 local STATE_PLAY = 0
@@ -127,11 +135,11 @@ level.hitwindows = { -- in a separate table so that we ensure we go through the 
 }
 
 level.grades = {
-	{'S', 100, 'ffff00'}, -- rank, % accuracy needed, color
-	{'A', 90, 'aaff00'},
-	{'B', 70, '2222ff'},
-	{'C', 40, 'ffaaff'},
-	{'D', 0, 'ff7700'},
+	{'S', 100, 'ffff00', 'shineselect', 'Outstanding performance!'}, -- grade, % accuracy needed, color, sound, text below grade
+	{'A', 90, 'aaff00', 'coin', 'Really good play!'},
+	{'B', 70, '2222ff', nil, 'Decent stepping.'},
+	{'C', 40, 'ffaaff', 'awkward', 'Could\'ve been better.'},
+	{'D', 0, 'ff7700', 'glassbreak', 'ouch'},
 	{'F', 0, 'ff0000'} -- only given when you fail
 }
 
@@ -182,11 +190,22 @@ function level.init()
 	level.gover.SendToTop()
 	level.overlay.SendToTop()
 
-	level.rank.layer = 'BelowPlayer' -- no text.SendToTop :)
+	level.rank.SendToTop()
+	level.finishtext.SendToTop()
+	level.belowrank.SendToTop()
+
+	-- these two should act the same
+
+	--[[
+	level.rank.layer = 'BelowPlayer'
 	level.rank.layer = 'game_ui'
 
-	level.finishtext.layer = 'BelowPlayer' -- no text.SendToTop :)
+	level.finishtext.layer = 'BelowPlayer'
 	level.finishtext.layer = 'game_ui'
+
+	level.belowrank.layer = 'BelowPlayer'
+	level.belowrank.layer = 'game_ui'
+	]]
 
 	level.readsave()
 
@@ -200,6 +219,9 @@ function level.reset()
 
 	level.finishtext.alpha = 0
 	level.rank.alpha = 0
+	level.belowrank.alpha = 0
+
+	level.rank.SetText('')
 
 	level.state = STATE_PLAY
 	level.statetimer = 0
@@ -393,16 +415,28 @@ function level.update()
 
 			if timer < 0.5 then
 				level.overlay.alpha = easing.inSine(math.min(timer, 0.5), 0, 0.6, 0.5)
-			elseif timer > 1.5 and level.state == STATE_FINISH then
+			elseif timer > 2 and level.state == STATE_FINISH then
+
 				level.finishtext.alpha = 1
 				level.state = STATE_BEFORERANK
-			elseif timer > 3 and level.state == STATE_BEFORERANK then
+
+			elseif timer > 4 and level.state == STATE_BEFORERANK then
 				level.state = STATE_FINISHRANK
 
-				level.rank.SetText('[instant]'..level.gottenrank[1])
-				level.rank.alpha = 1
+				local rank = level.gottenrank
 
-			elseif timer > 6 and level.state == STATE_FINISHRANK then
+				if rank[4] then Audio.PlaySound(rank[4]) end
+
+				local str = '[instant]'..'[color:'..rank[3]..']'..rank[1]
+				level.rank.alpha = 1
+				level.rank.SetText(str)
+
+				str = '[instant]' .. (rank[5] or '')
+				level.belowrank.alpha = 1
+				level.belowrank.SetText(str)
+				level.belowrank.x = 320-level.belowrank.GetTextWidth()*level.belowrank.xscale/2
+
+			elseif timer > 7 and level.state == STATE_FINISHRANK then
 
 				level.exit()
 
