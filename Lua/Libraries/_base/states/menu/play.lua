@@ -91,14 +91,19 @@ function play.update(setstate)
 
 			if not Misc.DirExists(path) then
 				NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.5)
-				error('error while reading\n\nUh oh, an error was encountered while trying to read this chart!\n\n- The chart could not be found! Are you sure it\'s still in the Charts folder?', -1)
+				error('error while loading\n\nUh oh, an error was encountered while loading this chart!\n\nThe chart could not be found! Are you sure it\'s still in the Charts folder?', -1)
 			end
 
 			local res, err = pcall(reader.load, path, setstate)
 
 			if not res then
-				NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.5)
-				error('error while reading\n\nUh oh, an error was encountered while trying to read this chart!\n\n- ' .. err, -1)
+				if err:find('_base') then
+					NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.25)
+					error('internal error!\n\nUh oh, an internal error was encountered while loading this chart!\n\nSend this to 9thCore to investigate!\n\n' .. err, -1)
+				else
+					NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.25)
+					error('error while loading\n\nUh oh, an error was encountered while loading this chart!\n\n' .. err, -1)
+				end
 			end
 
 		end

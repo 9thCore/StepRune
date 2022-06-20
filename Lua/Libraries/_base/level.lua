@@ -15,6 +15,7 @@ local ui = require '_base/ui'
 local easing = require 'easing'
 local save = require '_base/save'
 local playstate = require '_base/states/play'
+local lockdown = require '_base/lockdown'
 
 notemanager.level = level
 judgement.level = level
@@ -119,6 +120,7 @@ level.difficulties = {
 	}
 }
 
+level.chartobjects = {} -- store objects created during the chart so we can remove them later
 level.chartname = ''
 
 level.judgementproperties = {
@@ -142,6 +144,9 @@ level.grades = {
 	{'D', 0, 'ff7700', 'glassbreak', 'ouch'},
 	{'F', 0, 'ff0000'} -- only given when you fail
 }
+
+local ChartUpdate
+local ChartLateUpdate
 
 function level.getrank()
 
@@ -194,19 +199,6 @@ function level.init()
 	level.finishtext.SendToTop()
 	level.belowrank.SendToTop()
 
-	-- these two should act the same
-
-	--[[
-	level.rank.layer = 'BelowPlayer'
-	level.rank.layer = 'game_ui'
-
-	level.finishtext.layer = 'BelowPlayer'
-	level.finishtext.layer = 'game_ui'
-
-	level.belowrank.layer = 'BelowPlayer'
-	level.belowrank.layer = 'game_ui'
-	]]
-
 	level.readsave()
 
 end
@@ -236,6 +228,9 @@ function level.reset()
 
 	level.savedrank = false
 	level.gottenrank = {'F'}
+
+	ChartUpdate = nil
+	ChartLateUpdate = nil
 
 end
 
@@ -322,6 +317,14 @@ function level.exit()
 	playstate.exit()
 
 	-- TODO: remove sprites, bullets and text created during chart
+	for _,t in ipairs(level.chartobjects) do
+		local v, vtype = t[1], t[2]
+		if vtype == 'sprite' or vtype == 'bullet' then
+			v.Remove()
+		end
+	end
+
+	collectgarbage('collect') -- no idea if this actually does anything but :samuraisword:
 
 end
 
@@ -338,9 +341,8 @@ end
 
 function level.load(t)
 
+	-- reset stuff
 	level.reset()
-
-	level.chartname = t.chartname
 
 	level.gamecover.alpha = 1
 	level.gover.alpha = 0
@@ -351,10 +353,23 @@ function level.load(t)
 	measures.reset()
 	conductor.reset()
 
+	notemanager.init()
+
+
+	level.chartname = t.chartname
+
+	-- schedule events
+
+	-- bpms
 	conductor.setbpms(t.bpms)
 
-	notemanager.init()
-	
+	-- the song
+	NewAudio.PlayMusic('game_music', '../' .. ChartPath .. '/' .. t.chartname .. '/main')
+	NewAudio.Pause('game_music')
+
+	conductor.addevent(0, t.songoffset + level.useroffset/1000, NewAudio.Unpause, 'game_music')
+		
+	-- notes
 	for _,note in ipairs(t.notes) do
 		measures.set(note.measure, note.measurelinecount)
 
@@ -369,17 +384,42 @@ function level.load(t)
 
 	end
 
-	-- the song
-	NewAudio.PlayMusic('game_music', '../' .. ChartPath .. '/' .. t.chartname .. '/main')
-	NewAudio.Pause('game_music')
-
-	conductor.addevent(0, t.songoffset + level.useroffset/1000, NewAudio.Unpause, 'game_music')
-
 	-- finish
 	conductor.addevent(level.lastbeat, -2, level.finish) -- negative offset because we want this to happen 2 seconds *later*!
 
+	-- start conductor
 	conductor.sortevents()
 	conductor.start()
+
+
+	-- try to load chart's lua file
+	local luapath = ChartPath..'/'..t.chartname..'/main.lua'
+
+	if Misc.FileExists(luapath) then
+
+		local env = lockdown.getenv(level.chartobjects, {
+			Update = {
+				set = function(t)
+					ChartUpdate = t.Update
+				end,
+				get = function()
+					return ChartUpdate
+				end
+			},
+			LateUpdate = {
+				set = function(t)
+					ChartLateUpdate = t.LateUpdate
+				end,
+				get = function()
+					return ChartLateUpdate
+				end
+			}
+		})
+
+		local f = loadfile('../'..luapath, nil, env)
+		f()
+
+	end
 
 end
 
@@ -394,10 +434,10 @@ function level.update()
 
 	if level.state < STATE_DEATH then
 
-		if ChartUpdate then ChartUpdate() end
+		if type(ChartUpdate) == 'function' then ChartUpdate() end
 		notemanager.update()
 		ui.update()
-		if ChartLateUpdate then ChartLateUpdate() end
+		if type(ChartLateUpdate) == 'function' then ChartLateUpdate() end
 
 		if level.state >= STATE_FINISH and level.state < STATE_DEATH then
 

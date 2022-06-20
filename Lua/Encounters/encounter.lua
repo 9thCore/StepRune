@@ -10,7 +10,7 @@ noscalerotationbug = true
 -- cover, also pretty much base layer for the game and menu
 CreateLayer('menu_cover', 'Top', false)
 CreateLayer('game_cover', 'menu_cover', false)
-CreateSprite('black', 'menu_cover') -- lowest so we dont really care about it
+CreateSprite('black', 'menu_cover') -- lowest so we dont really care enough about it to store it in a variable
 
 local function loadbase(name)
 	return require('_base/'..name)
