@@ -50,6 +50,7 @@ function lockdown.getenv(ot, st)
 	end
 
 	specialvars.Conductor = conductor.getobject()
+	specialvars.Level = lockdown.level.getobject()
 
 	specialvars.Misc = nil
 	specialvars.UI = nil

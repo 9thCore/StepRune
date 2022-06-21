@@ -68,8 +68,12 @@ function play.init()
 end
 
 function play.update(setstate)
-	
-	resources.update()
+
+	if Input.GetKey('Escape') == 1 then
+		Audio.PlaySound('menuconfirm')
+		setstate(1)
+		return
+	end
 
 	if Input.Left == 1 then
 		nextpage(-1)
@@ -82,9 +86,7 @@ function play.update(setstate)
 		Audio.PlaySound 'menuconfirm'
 
 		if resources.heartSelected == 1 then
-
 			setstate(1)
-
 		else
 
 			local path = ChartPath .. '/' .. resources.text[resources.heartSelected][2]
@@ -109,6 +111,8 @@ function play.update(setstate)
 		end
 
 	end
+	
+	resources.update()
 
 end
 

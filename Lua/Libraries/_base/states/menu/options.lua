@@ -53,6 +53,12 @@ explain = {
 		local final = 'Whether an explosion should be created when a mine is hit.\nShould probably leave this off.'
 		explain.set(final)
 
+	end,
+	quittime = function()
+
+		local final = 'How long to hold ESCAPE while playing to exit, in seconds.\nHold CANCEL to change by 1 instead of 0.1.'
+		explain.set(final)
+
 	end
 
 }
@@ -86,6 +92,12 @@ settext = {
 
 		local str = '[instant]Mine explosions [' .. ((level.mineexplos and 'ON') or 'OFF') .. ']'
 		settext.set(5, str)
+
+	end,
+	quittime = function()
+
+		local str = '[instant]Quit time <' .. level.quittime .. '>'
+		settext.set(6, str)
 
 	end
 
@@ -127,11 +139,19 @@ function options.init()
 
 	settext.mineexplo()
 
+	settext.quittime()
+
 	explainer.alpha = 1
 
 end
 
 function options.update(setstate)
+
+	if Input.GetKey('Escape') == 1 then
+		Audio.PlaySound('menuconfirm')
+		setstate(1)
+		return
+	end
 		
 	local lastpos = resources.heartSelected
 	resources.update()
@@ -147,6 +167,8 @@ function options.update(setstate)
 			explain.autoplay()
 		elseif resources.heartSelected == 5 then
 			explain.mineexplo()
+		elseif resources.heartSelected == 6 then
+			explain.quittime()
 		end
 	end
 
@@ -181,7 +203,7 @@ function options.update(setstate)
 
 			Audio.PlaySound('menuconfirm')
 
-		elseif resources.heartSelected == 4 then
+		elseif resources.heartSelected == 4 then -- Autoplay
 
 			level.autoplay = not level.autoplay
 
@@ -192,7 +214,7 @@ function options.update(setstate)
 
 			Audio.PlaySound('menuconfirm')
 
-		elseif resources.heartSelected == 5 then
+		elseif resources.heartSelected == 5 then -- Mine explosions
 
 			level.mineexplos = not level.mineexplos
 
@@ -235,6 +257,36 @@ function options.update(setstate)
 			Audio.PlaySound('menumove')
 
 			save.var(save.offsetname, level.useroffset)
+		end
+
+	elseif resources.heartSelected == 6 then
+
+		local change = 0.1
+		if Input.Cancel > 0 then
+			change = 1
+		end
+
+		local pl = Input.Left == 1
+		if (numholdtime > 15 and numholdtime % 5 == 0) and Input.Left > 0 then
+			pl = true
+		end
+
+		local pr = Input.Right == 1
+		if (numholdtime > 15 and numholdtime % 5 == 0) and Input.Right > 0 then
+			pr = true
+		end
+
+		if pl then
+			level.quittime = math.max(level.quittime - change, 0.1)
+		elseif pr then
+			level.quittime = math.min(level.quittime + change, 10)
+		end
+
+		if pl or pr then
+			settext.quittime()
+			Audio.PlaySound('menumove')
+
+			save.var(save.quittimename, level.quittime)
 		end
 
 	end

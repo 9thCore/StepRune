@@ -17,8 +17,12 @@ function menu.init()
 end
 
 function menu.update(setstate)
-	
-	resources.update()
+
+	if Input.GetKey('Escape') == 1 then
+		Audio.PlaySound('menuconfirm')
+		State 'DONE'
+		return
+	end
 
 	if Input.Confirm == 1 then
 
@@ -30,6 +34,8 @@ function menu.update(setstate)
 		end
 
 	end
+	
+	resources.update()
 
 end
 

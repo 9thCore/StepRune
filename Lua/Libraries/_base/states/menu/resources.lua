@@ -206,16 +206,16 @@ function resources.update()
 		f.y = f.y + spd
 		f['timer'] = (f['timer'] or 0) + 1
 
-		if f.x > 320+120 then
-			f.x = f.x - 120
-		elseif f.x < 320-120 then
-			f.x = f.x + 120
+		if f.x > 320+120*4 then
+			f.x = f.x - 120*4
+		elseif f.x < 320-120*4 then
+			f.x = f.x + 120*4
 		end
 
-		if f.y + 240 > 240+480 then
-			f.y = f.y - 480
-		elseif f.y - 240 < 240-480 then
-			f.y = f.y + 480
+		if f.y + 240 > 240+480*4 then
+			f.y = f.y - 480*4
+		elseif f.y - 240 < 240-480*4 then
+			f.y = f.y + 480*4
 		end
 
 		local r, g, b = hsvToRgb(f['timer']/2/255, 1, ((math.sin(f['timer']/64)*40)+60)/255,1)

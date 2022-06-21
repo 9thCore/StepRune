@@ -6,6 +6,7 @@ arenasize = {155, 130}
 enemies = {}
 enemypositions = {}
 noscalerotationbug = true
+-- unescape = true -- TODO at the end: uncomment this
 
 -- cover, also pretty much base layer for the game and menu
 CreateLayer('menu_cover', 'Top', false)

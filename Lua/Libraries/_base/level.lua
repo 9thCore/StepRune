@@ -17,6 +17,7 @@ local save = require '_base/save'
 local playstate = require '_base/states/play'
 local lockdown = require '_base/lockdown'
 
+lockdown.level = level
 notemanager.level = level
 judgement.level = level
 ui.level = level
@@ -79,8 +80,15 @@ level.hp = 100
 level.autoplay = false
 level.mineexplos = false
 level.useroffset = 0
+level.quittime = 0.5
 
-level.difficulty = 'NORMAL' -- TODO: make this the difficulty you select in the options when that's implemented
+level.holdingtime = 0
+level.quitting = CreateSprite('_base/quitting', 'game_ui')
+level.quitting.SetPivot(0,1)
+level.quitting.MoveTo(0,480)
+level.quitting.alpha = 0
+
+level.difficulty = 'NORMAL'
 level.difficulties = {
 	{
 		difficulty = 'VERY EASY',
@@ -182,6 +190,7 @@ function level.readsave()
 	level.autoplay = savet.autoplay or level.autoplay
 	level.mineexplos = savet.boom or level.mineexplos
 	level.useroffset = savet.offset or level.useroffset
+	level.quittime = savet.quittime or level.quittime
 
 end
 
@@ -191,6 +200,8 @@ function level.init()
 
 	ui.init()
 	notemanager.reset()
+
+	level.quitting.SendToTop()
 
 	level.gover.SendToTop()
 	level.overlay.SendToTop()
@@ -307,6 +318,8 @@ function level.exit()
 
 	level.reset()
 
+	level.quitting.alpha = 0
+
 	level.gamecover.alpha = 0
 	ui.setalpha(0)
 	ui.update() -- update one last time
@@ -316,7 +329,6 @@ function level.exit()
 
 	playstate.exit()
 
-	-- TODO: remove sprites, bullets and text created during chart
 	for _,t in ipairs(level.chartobjects) do
 		local v, vtype = t[1], t[2]
 		if vtype == 'sprite' or vtype == 'bullet' then
@@ -427,9 +439,32 @@ function level.update()
 
 	if not conductor.playing then return end
 
-	if Input.GetKey('F1') == 1 then -- TODO: change this into holding Esc for time
-		level.exit()
-		return
+	if level.state == STATE_PLAY then
+
+		if Input.GetKey('Escape') > 0 then
+
+			level.holdingtime = level.holdingtime + Time.dt
+			level.quitting.alpha = easing.linear(level.holdingtime, 0, 2, level.quittime)
+
+			if level.holdingtime > level.quittime then
+
+				level.exit()
+				return
+
+			end
+
+		else
+
+			level.holdingtime = 0
+			level.quitting.alpha = 0
+
+		end
+
+	else
+
+		level.holdingtime = 0
+		level.quitting.alpha = 0
+
 	end
 
 	if level.state < STATE_DEATH then
@@ -514,6 +549,34 @@ function level.update()
 		end
 
 	end
+
+end
+
+function level.getobject()
+
+	local obj = {}
+
+	function obj.SetHP(newhp)
+		level.hp = math.min(math.max(newhp, 1), 100)
+		ui.hpbar.easefill(level.hp/100)
+	end
+	function obj.GetHP()
+		return level.hp
+	end
+	function obj.GetHits()
+		return level.hits
+	end
+	function obj.GetMisses()
+		return level.misses
+	end
+	function obj.GetAcc()
+		return level.acc
+	end
+	function obj.GetCombo()
+		return level.combo
+	end
+
+	return obj
 
 end
 

@@ -221,6 +221,14 @@ function conductor.getobject()
 		return conductor.beattosec(...)
 	end
 
+	function obj.GetBPMAtSecond(sec)
+		return conductor.getbpmatsec(sec)
+	end
+
+	function obj.GetBPMAtBeat(b)
+		return conductor.getbpmatbeat(b)
+	end
+
 	return obj
 
 end
