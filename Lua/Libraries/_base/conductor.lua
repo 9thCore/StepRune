@@ -96,7 +96,7 @@ end
 
 local function newevent(beat, offset, func, ...)
 	local second = conductor.beattosec(beat) - offset
-	local t = {beat = beat, second = second, func = func, params = table.pack(...)}
+	local t = {beat = beat, second = second, offset = offset, func = func, params = table.pack(...)}
 
 	return t
 end
@@ -227,6 +227,14 @@ function conductor.getobject()
 
 	function obj.GetBPMAtBeat(b)
 		return conductor.getbpmatbeat(b)
+	end
+
+	function obj.GetBeat()
+		return conductor.beat
+	end
+
+	function obj.GetSeconds()
+		return conductor.seconds
 	end
 
 	return obj

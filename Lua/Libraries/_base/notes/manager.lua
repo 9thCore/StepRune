@@ -11,7 +11,7 @@ local notetypes = {
 	mine = require '_base/notes/mine'
 }
 
-local rowtoreceptordir = {
+local receptordirections = {
 	'left', 'down', 'up', 'right'
 }
 
@@ -23,6 +23,55 @@ local easing = require 'easing'
 
 manager.noteease = easing.linear
 manager.holdease = easing.linear
+
+local function rotate(mat, ry, rz)
+
+	-- https://rosettacode.org/wiki/Matrix_multiplication#Lua
+	local function multiply( m1, m2 )
+	    if #m1[1] ~= #m2 then       -- inner matrix-dimensions must agree
+	        return nil      
+	    end 
+	 
+	    local res = {}
+	 
+	    for i = 1, #m1 do
+	        res[i] = {}
+	        for j = 1, #m2[1] do
+	            res[i][j] = 0
+	            for k = 1, #m2 do
+	                res[i][j] = res[i][j] + m1[i][k] * m2[k][j]
+	            end
+	        end
+	    end
+	 
+	    return res
+	end
+
+	local rady = ry/180*math.pi
+	local radz = rz/180*math.pi
+
+	local sin = math.sin
+	local cos = math.cos
+
+	local yrot = {
+		{cos(rady), 0, sin(rady), 0},
+		{0, 1, 0, 0},
+		{-sin(rady), 0, cos(rady), 0},
+		{0, 0, 0, 1}
+	}
+
+	local zrot = {
+		{cos(radz), sin(radz), 0, 0},
+		{-sin(radz), cos(radz), 0, 0},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1}
+	}
+
+	local rotmat = multiply(yrot, zrot)
+
+	return multiply(mat, rotmat)
+
+end
 
 function manager.new(t)
 
@@ -44,17 +93,16 @@ function manager.create(note, i)
 
 	note:create()
 
+	for _,n in ipairs(note.nt) do
+		n:create()
+	end
+
 	local line = note.line
 	if line then
 		measures.addnote(note, line)
 		manager.setnotecolor(note)
 	else
-		note:setcolor(colors.getinvalid()) -- automatically set to gray color if we dont have a line, such as when a note is created via the chart lua
-	end
-
-	for _,n in ipairs(note.nt) do
-		n:create()
-		n:copy(note)
+		note:SetColor(colors.getinvalid()) -- automatically set to gray color if we dont have a line, such as when a note is created via the chart lua
 	end
 
 	manager.notes[#manager.notes+1] = note
@@ -62,12 +110,12 @@ function manager.create(note, i)
 
 end
 
-function manager.spawn(type, line, duration, row, measure, distance, ...)
+function manager.spawn(type, dur, line, row, measure, distance, ...)
 
-	local receptordir = rowtoreceptordir[row]
+	local receptordir = receptordirections[row]
 	local receptor = manager.receptors[1][receptordir] -- get first receptor, this will be the parent of the note we track and update
 
-	local note = notetypes[type].spawn(false, duration, receptor, distance, manager.noteease, manager.holdease, ...)
+	local note = notetypes[type].spawn(false, dur, receptor, distance, manager.noteease, manager.holdease, ...)
 	note.row = row
 	note.measure = measure
 	note.line = line
@@ -79,7 +127,7 @@ function manager.spawn(type, line, duration, row, measure, distance, ...)
 		local rcptrs = manager.receptors[i]
 		local rcptr = rcptrs[receptordir]
 
-		local _note = notetypes[type].spawn(true, duration, rcptr, distance, manager.noteease, manager.holdease, ...)
+		local _note = notetypes[type].spawn(true, dur, rcptr, distance, manager.noteease, manager.holdease, ...)
 
 		-- add them to the table
 		note.nt[#note.nt+1] = _note
@@ -101,24 +149,34 @@ function manager.createreceptors()
 
 	local receptors = {}
 
-	receptors.realcolor = {1,1,1}
+	receptors.moved = false
 
-	receptors.center = CreateSprite('empty', 'game_receptor')
-	receptors.center.y = 300
+	receptors.x = 320
+	receptors.y = 300
+
+	receptors.rotx = 0
+	receptors.roty = 0
+	receptors.rotz = 0
+
+	receptors.scaledist = 1
+	receptors.scalex = 1
+	receptors.scaley = 1
+
+	receptors.arrowoffset = 0
+
+	receptors.realcolor = {1,1,1}
 
 	local function newreceptor(xoffset,rot)
 		local rcptr = {}
 
 		rcptr.parent = CreateSprite('empty', 'game_receptor') -- the invisible sprite used to parent the arrows
-		rcptr.parent.SetParent(receptors.center)
-		rcptr.parent.x = xoffset
-		rcptr.parent.y = 0
+		rcptr.parent.x = receptors.x + xoffset
+		rcptr.parent.y = receptors.y
 
 		rcptr.visual = CreateSprite('_base/arrow/0', 'game_receptor') -- the visible sprite used for showing where the receptor is
 		rcptr.visual.SetAnimation({'0', '1', '2', '3'}, 1/8, '_base/arrow')
-		rcptr.visual.SetParent(receptors.center)
-		rcptr.visual.x = xoffset
-		rcptr.visual.y = 0
+		rcptr.visual.x = receptors.x + xoffset
+		rcptr.visual.y = receptors.y
 		rcptr.visual.rotation = rot
 
 		rcptr.explosion = CreateSprite('_base/arrow/hit_perfect', 'game_receptor') -- the explosion after hitting a note
@@ -130,6 +188,11 @@ function manager.createreceptors()
 		rcptr.explosion['startsec'] = -10
 		rcptr.explosion['alphamult'] = 1
 
+		rcptr.xoffset = xoffset
+		rcptr.z = 0
+
+		rcptr.object = receptors
+
 		rcptr.parent.SendToTop()
 
 		return rcptr
@@ -140,46 +203,179 @@ function manager.createreceptors()
 	receptors.up = newreceptor(16, 180)
 	receptors.right = newreceptor(48, 90)
 
-	function receptors:setalpha(val)
+	-- SETTERS --
+	function receptors:SetAlpha(val)
 
-		for _,r in ipairs(rowtoreceptordir) do
+		for _,r in ipairs(receptordirections) do
 			self[r].visual.alpha = val
 			self[r].explosion['alphamult'] = val
 		end
 
 	end
 
-	function receptors:hide()
-		self:setalpha(0)
+	function receptors:Hide()
+		self:SetAlpha(0)
 	end
 
-	function receptors:show()
-		self:setalpha(1)
+	function receptors:Show()
+		self:SetAlpha(1)
 	end
 
-	function receptors:move(x,y)
-		x = x or self.center.x
-		y = y or self.center.y
-		self.center.Move(x,y)
-	end
-
-	function receptors:moveto(x,y)
-		x = x or self.center.x
-		y = y or self.center.y
-		self.center.MoveTo(x,y)
-	end
-
-	function receptors:movetoabs(x,y)
-		x = x or self.center.x
-		y = y or self.center.y
-		self.center.MoveToAbs(x,y)
-	end
-
-	function receptors:setcolor(col, g, b)
+	function receptors:SetColor(col, g, b)
 		if type(col) ~= 'table' then col = {col, g, b} end
-		if col[4] then self:setalpha(col[4]) end
+		if col[4] then self:SetAlpha(col[4]) end
 
 		self.realcolor = col
+
+	end
+
+	function receptors:Move(x,y)
+
+		x = x or 0
+		y = y or 0
+
+		self.x = self.x + x
+		self.y = self.y + y
+
+	end
+
+	function receptors:MoveTo(x,y)
+
+		x = x or self.x
+		y = y or self.y
+
+		self.x = x
+		self.y = y
+
+	end
+
+	function receptors:RotateZ(rot, additive)
+
+		self.rotz = (rot + ((additive and self.rotz) or 0))%360
+		self.moved = true
+
+	end
+
+	function receptors:RotateY(rot, additive)
+
+		self.roty = (rot + ((additive and self.roty) or 0))%360
+		self.moved = true
+
+	end
+
+	-- doesn't do anything yet haha, just for completeness sake
+	function receptors:RotateX(rot, additive)
+
+		self.rotx = (rot + ((additive and self.rotx) or 0))%360
+
+	end
+
+	function receptors:ScaleArrows(x, y, additive)
+
+		x = x or self.scalex
+		y = y or self.scaley
+
+		self.scalex = x + ((additive and self.scalex) or 0)
+		self.scaley = y + ((additive and self.scaley) or 0)
+		self.moved = true
+
+	end
+
+	function receptors:ScaleDistance(x, additive)
+
+		x = x or self.scaledist
+
+		self.scaledist = x + ((additive and self.scaledist) or 0)
+		self.moved = true
+
+	end
+
+	function receptors:Scale(x, y, additive)
+
+		self:ScaleArrows(x, y, additive)
+		self:ScaleDistance(x, additive)
+
+	end
+
+	function receptors:SetPivot(x, additive)
+
+		x = x or self.arrowoffset
+
+		self.arrowoffset = x + ((additive and self.arrowoffset) or 0)
+		self.moved = true
+
+	end
+
+	-- GETTERS --
+	function receptors:GetPos()
+		return self.x, self.y
+	end
+
+	function receptors:GetScale()
+		return self.scalex, self.scaley, self.scaledist
+	end
+
+	function receptors:GetRotation()
+		return self.rotx, self.roty, self.rotz
+	end
+
+	function receptors:GetColor()
+		return {self.realcolor[1], self.realcolor[2], self.realcolor[3]}
+	end
+
+	function receptors:GetPivot()
+		return self.arrowoffset
+	end
+
+	-- OTHER --
+	function receptors:UpdateReceptorPos()
+
+		-- apply transformations
+
+		for i,r in ipairs(receptordirections) do
+
+			local rec = self[r]
+
+			local newx = rec.parent.x
+			local newy = rec.parent.y
+
+			local scalex = self.scalex
+			local scaley = self.scaley
+
+			local offset = rec.xoffset + self.arrowoffset
+
+			-- scale
+			newx = offset * self.scaledist
+
+			-- rotation
+			local posmat = {
+				{newx, 0, 0, 1},
+			}
+
+			local finalmat = rotate(posmat, self.roty, self.rotz)
+
+			local x, y, z = finalmat[1][1], finalmat[1][2], finalmat[1][3]
+
+			newx = x
+			newy = y + z/4*self.scaledist
+
+			rec.z = z -- store the z for later use
+
+			scalex = scalex - z/(rec.visual.width*1.5)/8
+			scaley = scaley - z/(rec.visual.height*1.5)/8
+
+			-- finalising
+			newx = newx + self.x
+			newy = newy + self.y
+
+			rec.visual.MoveTo(newx, newy)
+
+			rec.parent.MoveTo(newx, newy)
+			rec.visual.Scale(scalex, scaley)
+
+			rec.explosion.Scale(scalex, scaley)
+
+		end
 
 	end
 
@@ -200,13 +396,11 @@ end
 
 function manager.removereceptors(t)
 
-	for _,dir in ipairs(rowtoreceptordir) do
+	for _,dir in ipairs(receptordirections) do
 		t[dir].visual.Remove()
 		t[dir].parent.Remove()
 		t[dir].explosion.Remove()
 	end
-
-	t.center.Remove()
 
 end
 
@@ -239,8 +433,8 @@ function manager.init()
 
 	for i=1,4 do
 		manager.receptors[i] = manager.createreceptors()
-		manager.receptors[i].center.x = 320
-		if i > 1 then manager.receptors[i]:hide() end
+		manager.receptors[i]:MoveTo(320,300)
+		if i > 1 then manager.receptors[i]:Hide() end
 	end
 
 end
@@ -270,18 +464,49 @@ function manager.update()
 
 	if not conductor.playing then return end
 
-	-- darkening receptors
+	-- receptor stuff
+
+	local sorter = {} -- table all the receptors get thrown in to change their order
+
 	for _,r in ipairs(manager.receptors) do
-		for _,row in ipairs(rowtoreceptordir) do
+
+		-- update their position
+		if r.moved then -- only update if the chart actually moved them this frame
+			r:UpdateReceptorPos()
+			r.moved = false
+		end
+
+		for _,row in ipairs(receptordirections) do
+
 			local receptor = r[row].visual
 
 			local col = r.realcolor
-			local r, g, b = col[1], col[2], col[3]
+			local red, g, b = col[1], col[2], col[3]
 
-			receptor.color = ((input.getkey(row) > 0) and {r*0.5, g*0.5, b*0.5}) or {r, g, b}
+			receptor.color = ((input.getkey(row) > 0) and {red*0.5, g*0.5, b*0.5}) or {red, g, b}
+
+			sorter[#sorter+1] = r[row] -- add the receptors to a table
 
 		end
+
 	end
+
+	-- sort said table
+	table.sort(sorter, function(a,b)
+		if math.abs(a.z - b.z) < 0.001 then -- practically same z coord
+			return a.parent.y > b.parent.y
+		end
+		return a.z > b.z
+	end)
+
+	-- fix their render order
+	for _,r in ipairs(sorter) do
+
+		r.visual.SendToTop()
+		r.parent.SendToTop()
+
+	end
+
 
 	-- notes
 	local hitonrow = {}
@@ -305,7 +530,7 @@ function manager.update()
 
 		else
 
-			n:update()	
+			n:update()
 
 			if manager.level.autoplay then
 
@@ -313,7 +538,7 @@ function manager.update()
 
 				if ishit then
 					manager.level.judge('perfect')
-					manager.explosion(n.row, rowtoreceptordir[n.row], 'perfect')
+					manager.explosion(n.row, receptordirections[n.row], 'perfect')
 				end
 
 				if n.type == 'mine' then
@@ -377,7 +602,7 @@ function manager.update()
 
 						if not hitonrow[n.row] then
 
-							local row = rowtoreceptordir[n.row]
+							local row = receptordirections[n.row]
 
 							if input.getkey(row) == 1 then -- hit detection
 
@@ -442,7 +667,7 @@ function manager.update()
 	-- explosions
 	for _,receptors in ipairs(manager.receptors) do
 
-		for ridx,row in ipairs(rowtoreceptordir) do
+		for ridx,row in ipairs(receptordirections) do
 
 			local receptor = receptors[row]
 			local explo = receptor.explosion
@@ -482,6 +707,62 @@ function manager.update()
 			table.remove(manager.realexplo,i)
 		end
 	end
+
+end
+
+function manager.wrapreceptors(r)
+
+	local t = {}
+
+	local recspecial = {
+		UpdatePos = true
+	}
+
+	-- functions the receptors have
+	for fn,fc in pairs(r) do
+
+		if not recspecial[fn] then
+
+			if type(fc) == 'function' then
+				t[fn] = function(t,...)
+					return fc(r,...)
+				end
+			end
+
+		end
+
+	end
+
+	return t
+
+end
+
+function manager.getobject()
+
+	local obj = {}
+
+	function obj.GetNote(idx)
+		return manager.getnote(idx) -- TODO: wrap this
+	end
+
+	function obj.GetReceptor(idx)
+		if idx < 1 or idx > #manager.receptors then return end
+		return manager.wrapreceptors(manager.receptors[idx])
+	end
+
+	function obj.GetReceptors()
+
+		local t = {}
+
+		for i,_ in ipairs(manager.receptors) do
+			t[#t+1] = obj.GetReceptor(i)
+		end
+
+		return t
+
+	end
+
+	return obj
 
 end
 

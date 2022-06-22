@@ -1,8 +1,7 @@
 local level = {}
 
 CreateLayer('game_receptor', 'game_cover', false)
-CreateLayer('game_notepart', 'game_receptor', false)
-CreateLayer('game_ui', 'game_notepart', false)
+CreateLayer('game_ui', 'game_receptor', false)
 
 NewAudio.CreateChannel('game_music')
 
@@ -77,6 +76,8 @@ level.acc = 100
 level.combo = 0
 level.hp = 100
 
+level.scrollspeed = 1
+
 level.autoplay = false
 level.mineexplos = false
 level.useroffset = 0
@@ -92,7 +93,7 @@ level.difficulty = 'NORMAL'
 level.difficulties = {
 	{
 		difficulty = 'VERY EASY',
-		camel = 'Very Easy',
+		name = 'Very Easy',
 		hitwindows = {
 			{'perfect', 0.5},
 			{'great', 0.75},
@@ -101,7 +102,7 @@ level.difficulties = {
 	},
 	{
 		difficulty = 'EASY',
-		camel = 'Easy',
+		name = 'Easy',
 		hitwindows = {
 			{'perfect', 0.2},
 			{'great', 0.4},
@@ -110,7 +111,7 @@ level.difficulties = {
 	},
 	{
 		difficulty = 'NORMAL',
-		camel = 'Normal',
+		name = 'Normal',
 		hitwindows = {
 			{'perfect', 0.1},
 			{'great', 0.2},
@@ -119,7 +120,7 @@ level.difficulties = {
 	},
 	{
 		difficulty = 'HARD',
-		camel = 'Hard',
+		name = 'Hard',
 		hitwindows = {
 			{'perfect', 0.075},
 			{'great', 0.15},
@@ -196,9 +197,10 @@ end
 
 function level.init()
 
+	ui.init()
+
 	level.reset()
 
-	ui.init()
 	notemanager.reset()
 
 	level.quitting.SendToTop()
@@ -229,6 +231,8 @@ function level.reset()
 	level.state = STATE_PLAY
 	level.statetimer = 0
 
+	level.holdingtime = 0
+
 	level.hits = 0
 	level.misses = 0
 	level.total = 0
@@ -236,6 +240,8 @@ function level.reset()
 
 	level.hp = 100
 	level.acc = 100
+
+	level.scrollspeed = 1
 
 	level.savedrank = false
 	level.gottenrank = {'F'}
@@ -317,6 +323,7 @@ function level.exit()
 	NewAudio.Stop('game_music')
 
 	level.reset()
+	ui.reset()
 
 	level.quitting.alpha = 0
 
@@ -351,6 +358,10 @@ function level.finish()
 
 end
 
+function level.getscrolltime()
+	return (3 / level.scrollspeed)
+end
+
 function level.load(t)
 
 	-- reset stuff
@@ -376,21 +387,21 @@ function level.load(t)
 	conductor.setbpms(t.bpms)
 
 	-- the song
-	NewAudio.PlayMusic('game_music', '../' .. ChartPath .. '/' .. t.chartname .. '/main')
+	NewAudio.PlayMusic('game_music', '../' .. ChartPath .. '/' .. t.chartname .. '/main') -- load song when chart loads
 	NewAudio.Pause('game_music')
 
-	conductor.addevent(0, t.songoffset + level.useroffset/1000, NewAudio.Unpause, 'game_music')
+	conductor.addevent(0, t.songoffset + level.useroffset/1000, NewAudio.Unpause, 'game_music') -- unpause it when needed
 		
 	-- notes
 	for _,note in ipairs(t.notes) do
 		measures.set(note.measure, note.measurelinecount)
 
-		local appeardur = 3
+		local dur = level.getscrolltime()
 		local dist = 240
 
-		local new, i = notemanager.new{note.type, note.lineinmeasure, appeardur, note.row, note.measure, dist, note.holdendbeat}
+		local new, i = notemanager.new{note.type, dur, note.lineinmeasure, note.row, note.measure, dist, note.holdendbeat}
 
-		conductor.addevent(note.beat, appeardur, notemanager.create, new, i)
+		conductor.addevent(note.beat, dur, notemanager.create, new, i)
 
 		level.lastbeat = math.max(level.lastbeat, note.holdendbeat or note.beat)
 
@@ -563,6 +574,7 @@ function level.getobject()
 	function obj.GetHP()
 		return level.hp
 	end
+
 	function obj.GetHits()
 		return level.hits
 	end
@@ -574,6 +586,34 @@ function level.getobject()
 	end
 	function obj.GetCombo()
 		return level.combo
+	end
+	function obj.GetGrade()
+		return level.getrank()
+	end
+	function obj.GetHitWindows()
+		return { -- make a new table so as to avoid being able to overwrite the real one
+			{'perfect', level.hitwindows[1][2]},
+			{'great', level.hitwindows[2][2]},
+			{'bad', level.hitwindows[3][2]}
+		}
+	end
+	function obj.GetDifficulty()
+		for _,d in ipairs(level.difficulties) do
+			if d.difficulty == level.difficulty then
+				return {
+					difficulty = d.difficulty,
+					name = d.name,
+					hitwindows = {
+						{'perfect', d.hitwindows[1][2]},
+						{'great', d.hitwindows[2][2]},
+						{'bad', d.hitwindows[3][2]}
+					}
+				}
+			end
+		end
+	end
+	function obj.SetScrollSpeed(val)
+		level.scrollspeed = val
 	end
 
 	return obj

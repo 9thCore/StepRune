@@ -11,6 +11,12 @@ local totalcnt = 0
 local page = 1
 local pagecnt = 0
 
+local paget = CreateText('[instant]Page 1', {10,10}, 640, 'game_ui')
+paget.Scale(1.5,1.5)
+paget.progressmode = 'none'
+paget.HideBubble()
+paget.color = {1,1,1,0}
+
 local function getlist(offset)
 
 	local t = {{'Back', ''}}
@@ -40,6 +46,10 @@ local function getlist(offset)
 
 end
 
+local function updatepage()
+	paget.SetText('[instant]Page '..page..'/'..pagecnt)
+end
+
 local function nextpage(dir)
 
 	if page + dir < 1 or page + dir > pagecnt then return end
@@ -51,11 +61,15 @@ local function nextpage(dir)
 		resources.setselect(resources.heartSelected-1)
 	end
 
+	updatepage()
+
 	Audio.PlaySound('menumove')
 
 end
 
 function play.init()
+
+	paget.alpha = 1
 
 	ui.diff.alpha = 1
 	if level.autoplay then ui.autoplay.alpha = 1 ui.autoplay.SetText('[instant]AUTOPLAY ON') end
@@ -65,6 +79,8 @@ function play.init()
 	resources.settextwithsuffix(getlist(0))
 	resources.setselect(1, true)
 
+	updatepage()
+
 end
 
 function play.update(setstate)
@@ -72,6 +88,7 @@ function play.update(setstate)
 	if Input.GetKey('Escape') == 1 then
 		Audio.PlaySound('menuconfirm')
 		setstate(1)
+		paget.alpha = 0
 		return
 	end
 
@@ -87,6 +104,7 @@ function play.update(setstate)
 
 		if resources.heartSelected == 1 then
 			setstate(1)
+			paget.alpha = 0
 		else
 
 			local path = ChartPath .. '/' .. resources.text[resources.heartSelected][2]
@@ -106,6 +124,8 @@ function play.update(setstate)
 					NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.25)
 					error('error while loading\n\nUh oh, an error was encountered while loading this chart!\n\n' .. err, -1)
 				end
+			else
+				paget.alpha = 0
 			end
 
 		end

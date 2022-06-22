@@ -77,8 +77,8 @@ settext = {
 	end,
 	diff = function()
 
-		local diffCamel = diffs[diffi].camel
-		local full = '[instant]Difficulty [' .. diffCamel .. ']'
+		local diffname = diffs[diffi].name
+		local full = '[instant]Difficulty [' .. diffname .. ']'
 		settext.set(3, full)
 
 	end,

@@ -49,12 +49,20 @@ function ui.init()
 			ui.hpbar.fill.alpha = alpha
 		end
 
-		function ui.hpbar.fillinstant(progress)
+		function ui.hpbar.fillbar(progress)
 			local f = ui.hpbar.frame.width-24
 			ui.hpbar.fill.xscale = f*progress*ui.hpbar.frame.xscale
 
 			local g = progress
 			ui.hpbar.fill.color = {1-g, g, 0}
+		end
+
+		function ui.hpbar.fillinstant(progress)
+			ui.hpbar.startfill = progress
+			ui.hpbar.filltarget = progress
+			ui.hpbar.timespent = 0
+
+			ui.hpbar.fillbar(progress)
 		end
 
 		function ui.hpbar.getfill()
@@ -171,14 +179,14 @@ function ui.reset()
 end
 
 function ui.updatediff()
-	local diffcamel = ui.level.difficulty
+	local diffname = ui.level.difficulty
 	for _,d in ipairs(ui.level.difficulties) do
 		if ui.level.difficulty == d.difficulty then
-			diffcamel = d.camel
+			diffname = d.name
 			break
 		end
 	end
-	ui.diff.SetText('[instant]' .. diffcamel)
+	ui.diff.SetText('[instant]' .. diffname)
 end
 
 function ui.setoffset(x,y)
@@ -253,7 +261,7 @@ function ui.update()
 	if ui.hpbar.timespent < ui.hpbar.totaltime then
 		ui.hpbar.timespent = ui.hpbar.timespent + Time.dt
 		local pr = easing.outQuad(ui.hpbar.timespent, ui.hpbar.startfill, ui.hpbar.filltarget-ui.hpbar.startfill, ui.hpbar.totaltime)
-		ui.hpbar.fillinstant(pr)
+		ui.hpbar.fillbar(pr)
 	end
 
 	ui.judger['timer'] = ui.judger['timer'] + Time.dt

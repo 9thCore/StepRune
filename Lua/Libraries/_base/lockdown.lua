@@ -4,6 +4,7 @@ local lockdown = {}
 -- in a separate file to avoid clogging up level.lua with a long thing, its already clogged enough :[
 
 local conductor = require '_base/conductor'
+local notemanager = require '_base/notes/manager'
 
 function lockdown.getenv(ot, st)
 
@@ -12,16 +13,16 @@ function lockdown.getenv(ot, st)
 
 	-- wrapped lua functions
 	function specialvars.require(path)
-		if path:find('_base') then return false end
+		if path:find('_base') then return nil end -- ;)
 		return _req(path)
 	end
 
 	function specialvars.SetAlMightyGlobal(name, val)
-		if tostring(name):lower():find('steprune') then return end -- ;)
+		if tostring(name):lower():find('steprune') then return end
 		SetAlMightyGlobal(name, val)
 	end
 	function specialvars.GetAlMightyGlobal(name)
-		if tostring(name):lower():find('steprune') then return end -- ;)
+		if tostring(name):lower():find('steprune') then return end
 		return GetAlMightyGlobal(name)
 	end
 
@@ -44,6 +45,13 @@ function lockdown.getenv(ot, st)
 
 	end
 
+	function specialvars.CreateText(...)
+		local v = CreateSprite(...)
+		ot[#ot+1] = {v, 'text'}
+		return v
+
+	end
+
 	function specialvars.UnloadSprite(s)
 		if s:lower():find('_base') then return end
 		return UnloadSprite(s)
@@ -51,6 +59,7 @@ function lockdown.getenv(ot, st)
 
 	specialvars.Conductor = conductor.getobject()
 	specialvars.Level = lockdown.level.getobject()
+	specialvars.Notes = notemanager.getobject()
 
 	specialvars.Misc = nil
 	specialvars.UI = nil
@@ -61,6 +70,9 @@ function lockdown.getenv(ot, st)
 	specialvars.CreateState = nil
 
 	specialvars.debug = nil -- ;)
+	specialvars.dofile = nil
+	specialvars.loadfile = nil
+	specialvars.loadstring = nil
 
 	setmetatable(env, {
 		__index = function(t,k)

@@ -3,7 +3,6 @@ local notehold = {}
 local conductor = require '_base/conductor'
 local easing = require 'easing'
 local input = require '_base/input'
-local spritehelper = require 'spritehelper'
 
 local holdgrace = 0.15
 
@@ -19,21 +18,24 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 		self.created = true
 
 		self.receptor = receptor
+
 		self.realalpha = 0
 		self.rotoffset = 0
+		self.scalex = 1
+		self.scaley = 1
 
-		self.parent = CreateSprite('empty', 'game_notepart')
+		self.parent = CreateSprite('empty', 'game_receptor')
 		self.parent.SetParent(receptor.parent)
 		self.parent.x = 0
 		self.parent.y = -distance
 
-		self.holdparent = CreateSprite('_base/arrow/mask/'..receptor.visual.rotation, 'game_notepart')
+		self.holdparent = CreateSprite('empty', 'game_receptor')
 		self.holdparent.SetParent(self.parent)
 		self.holdparent.x = 0
 		self.holdparent.y = 0
 		self.holdparent.alpha = 0.001
 
-		self.sprite = CreateSprite('_base/arrow/0', 'game_notepart')
+		self.sprite = CreateSprite('_base/arrow/0', 'game_receptor')
 		self.sprite.SetAnimation({'0', '1', '2', '3'}, 1/8, '_base/arrow')
 		self.sprite.rotation = receptor.visual.rotation
 		self.sprite.SetParent(self.parent)
@@ -41,13 +43,13 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 		self.sprite.y = 0
 		self.sprite.alpha = 0
 
-		self.holdend = CreateSprite('_base/arrow/hold_end', 'game_notepart')
+		self.holdend = CreateSprite('_base/arrow/hold_end', 'game_receptor')
 		self.holdend.SetPivot(0.5,1)
 		self.holdend.SetParent(self.holdparent)
 		self.holdend.x = 0
 		self.holdend.y = 0
 
-		self.holdbody = CreateSprite('_base/arrow/hold_body', 'game_notepart')
+		self.holdbody = CreateSprite('_base/arrow/hold_body', 'game_receptor')
 		self.holdbody.shader.Set('coreshaders', 'Tiler')
 		self.holdbody.SetPivot(0.5,1)
 		self.holdbody.SetParent(self.holdparent)
@@ -154,30 +156,16 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 					self.parent.y = 0 -- snap to the receptor because it looks weird otherwise
 
-					-- moving the hold end
-					local duration = self.endsec - self.startsec
-					local diff = self.holdendsec - self.holdstartsec
-					local length = diff/duration*self.distance
-
-					sofar = conductor.seconds - self.holdstartsec
-
-					local bodylength = math.max(holdease(sofar, length, -length, diff), 0)
-
-					self.holdend.y = -bodylength
-
-					-- making the hold body
-					self.holdbody.yscale = bodylength / self.holdbody.height
-
-					local multiplier = self.initialbodylength / bodylength
-					local tiley = self.initialtile / multiplier
-
-					self.holdbody.shader.SetFloat('TilesY', tiley)
+					self:setbodytile()
 
 				end
 
 				self:fixrot()
+				self:fixscale()
+
 				for _,n in ipairs(self.nt) do
 					n:fixrot()
+					n:fixscale()
 				end
 
 			end
@@ -206,12 +194,6 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 				return false
 			end
 
-			function self:setcolor(color)
-
-				self.sprite.color = color
-
-			end
-
 			function self:finishhold()
 				self.judge = self.judgement
 				self:remove()
@@ -221,16 +203,10 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 			function self:copy(note)
 
-				spritehelper.copysprite(self.parent, note.parent, false, false)
-				spritehelper.copysprite(self.holdparent, note.holdparent, false, false)
-
-				spritehelper.copysprite(self.sprite, note.sprite, false, false)
-				spritehelper.copysprite(self.holdbody, note.holdbody, false, false)
-				spritehelper.copysprite(self.holdend, note.holdend, false, false)
+				self.parent.x = note.parent.x
+				self.parent.y = note.parent.y
 
 				self.holdbody.shader.SetFloat('TilesY', note.holdbody.shader.GetFloat('TilesY'))
-
-				self:setalpha(note.realalpha)
 
 			end
 
@@ -243,9 +219,72 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 			self:fixrot()
 		end
 
+		function self:setcolor(color)
+
+			self.sprite.color = color
+
+			if self.nt then
+				for _,n in ipairs(self.nt) do
+					n:setcolor(color)
+				end
+			end
+
+		end
+
 		function self:fixrot()
 			self.sprite.rotation = receptor.visual.rotation + self.rotoffset
 			self.holdparent.rotation = 0 -- TODO: make this the correct value when full receptor rotation is added
+		end
+
+		function self:fixscale()
+			self.sprite.xscale = receptor.visual.xscale * self.scalex
+			self.sprite.yscale = receptor.visual.yscale * self.scaley
+
+			self:setbodytile()
+
+			self.holdbody.xscale = receptor.visual.xscale * self.scalex
+			self.holdbody.yscale = self.holdbody.yscale * receptor.visual.yscale * self.scaley
+
+			self.holdend.xscale = receptor.visual.xscale * self.scalex
+			self.holdend.yscale = receptor.visual.yscale * self.scaley
+
+			self.holdend.x = self.holdbody.x
+			self.holdend.y = -self.holdbody.yscale*self.holdbody.height
+		end
+
+		function self:setbodytile()
+
+			if not self.endsec then return end
+
+			-- moving the hold end
+			local duration = self.endsec - self.startsec
+			local diff = self.holdendsec - (self.holdstartsec or self.endsec)
+			local length = diff/duration*self.distance
+
+			local sofar
+			if self.holdstartsec then
+				sofar = conductor.seconds - self.holdstartsec
+			else
+				sofar = 0
+			end
+
+			local bodylength = math.max(holdease(sofar, length, -length, diff), 0)
+
+			self.holdend.y = -bodylength
+
+			-- making the hold body
+			self.holdbody.yscale = bodylength / self.holdbody.height
+
+			local multiplier = self.initialbodylength / bodylength
+			local tiley = self.initialtile / multiplier
+
+			self.holdbody.shader.SetFloat('TilesY', tiley)
+
+			for _,n in ipairs(self.nt) do
+				n.holdbody.yscale = self.holdbody.yscale
+				n.holdbody.shader.SetFloat('TilesY', tiley)
+			end
+
 		end
 
 		function self:remove()
@@ -283,6 +322,12 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 			self.sprite.alpha = alpha * receptor.visual.alpha
 			self.holdbody.alpha = alpha * receptor.visual.alpha
 			self.holdend.alpha = alpha * receptor.visual.alpha
+
+			if self.nt then
+				for _,n in ipairs(self.nt) do
+					n:setalpha(alpha)
+				end
+			end
 
 		end
 
