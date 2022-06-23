@@ -61,27 +61,37 @@ function lockdown.getenv(ot, st)
 	specialvars.Level = lockdown.level.getobject()
 	specialvars.Notes = notemanager.getobject()
 
-	specialvars.Misc = nil
-	specialvars.UI = nil
+	specialvars.Misc = 'nil'
+	specialvars.UI = 'nil'
 
-	specialvars.Flee = nil
-	specialvars.CreateLayer = nil
-	specialvars.State = nil
-	specialvars.CreateState = nil
+	specialvars.Flee = 'nil'
+	specialvars.CreateLayer = 'nil'
+	specialvars.State = 'nil'
+	specialvars.CreateState = 'nil'
 
-	specialvars.debug = nil -- ;)
-	specialvars.dofile = nil
-	specialvars.loadfile = nil
-	specialvars.loadstring = nil
+	specialvars.debug = 'nil' -- ;)
+	specialvars.dofile = 'nil'
+	specialvars.loadfile = 'nil'
+	specialvars.loadstring = 'nil'
+	specialvars.load = 'nil'
+
+	specialvars.rawget = 'nil'
+	specialvars.rawset = 'nil'
+
+	specialvars.package = 'nil'
 
 	setmetatable(env, {
 		__index = function(t,k)
-			if specialvars[k] then
-				return specialvars[k]
+			if specialvars[k] ~= nil then
+				if specialvars[k] == 'nil' then
+					return nil
+				else
+					return specialvars[k]
+				end
 			elseif st[k] then
 				return st[k].get(t)
 			elseif k == '_G' then
-				return t -- ;)
+				return nil -- ;)
 			else
 				return _G[k]
 			end
