@@ -5,6 +5,7 @@ CreateLayer('game_ui', 'game_receptor', false)
 
 NewAudio.CreateChannel('game_music')
 
+local input = require '_base/input'
 local conductor = require '_base/conductor'
 local measures = require '_base/notes/measures'
 local notemanager = require '_base/notes/manager'
@@ -192,6 +193,15 @@ function level.readsave()
 	level.mineexplos = savet.boom or level.mineexplos
 	level.useroffset = savet.offset or level.useroffset
 	level.quittime = savet.quittime or level.quittime
+
+	local bindings = savet.bindings
+
+	if bindings then
+		input.keys.left = bindings.left or input.keys.left
+		input.keys.right = bindings.right or input.keys.right
+		input.keys.up = bindings.up or input.keys.up
+		input.keys.down = bindings.down or input.keys.down
+	end
 
 end
 

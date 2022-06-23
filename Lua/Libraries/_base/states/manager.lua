@@ -27,6 +27,10 @@ local function setstate(newstate)
 		ui.setalpha(0)
 	end
 
+	resources.paget.alpha = 0
+	resources.page = 1
+	resources.pagecnt = 1
+
 	resources.settext{}
 
 	curstate = newstate

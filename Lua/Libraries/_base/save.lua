@@ -8,6 +8,7 @@ save.autoplayname = 'STEPRUNE_SAVE_AUTOPLAY'
 save.boomname = 'STEPRUNE_SAVE_MINEGOBOOM'
 save.offsetname = 'STEPRUNE_SAVE_OFFSET'
 save.quittimename = 'STEPRUNE_SAVE_QUITTIME'
+save.bindname = 'STEPRUNE_SAVE_BIND'
 
 function save.encoderank(level, diff)
 	
@@ -34,6 +35,12 @@ function save.getsave(difft)
 	t.boom = get(save.boomname)
 	t.offset = get(save.offsetname)
 	t.quittime = get(save.quittimename)
+	t.bindings = {
+		left = get(save.bindname .. 'LEFT'),
+		down = get(save.bindname .. 'DOWN'),
+		up = get(save.bindname .. 'UP'),
+		right = get(save.bindname .. 'RIGHT')
+	}
 
 	return t
 

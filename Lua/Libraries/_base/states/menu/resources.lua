@@ -15,6 +15,16 @@ resources.heartTarget = 301
 
 resources.heartSelected = 1
 
+resources.paget = CreateText('[instant]Page 1', {10,10}, 640, 'menu_ui')
+resources.paget.Scale(1.5,1.5)
+resources.paget.y = 480 - 10 - resources.paget.GetTextHeight() * resources.paget.yscale
+resources.paget.progressmode = 'none'
+resources.paget.HideBubble()
+resources.paget.color = {1,1,1,0}
+
+resources.page = 1
+resources.pagecnt = 1
+
 resources.text = {}
 local textprefix = '[instant][effect:none]'
 
@@ -73,6 +83,10 @@ end
 
 resources.textColorInactive = {1,1,1}
 resources.textColorActive = {1,1,0.6}
+
+function resources.updatepage()
+	resources.paget.SetText('[instant]Page ' .. resources.page .. '/' .. resources.pagecnt .. '\nPress Q and E to change!')
+end
 
 function resources.fittext()
 
@@ -178,7 +192,7 @@ function resources.trymove(dir)
 
 	if #resources.text[new][2] < 1 then return end
 
-	Audio.PlaySound('menumove')
+	Audio.PlaySound 'menumove'
 	resources.setselect(new)
 
 end
@@ -193,9 +207,9 @@ function resources.checkmove()
 
 end
 
-function resources.update()
+function resources.update(dontmove)
 
-	resources.checkmove()
+	if not dontmove then resources.checkmove() end
 	resources.heart.y = easing.linear(1/5, resources.heart.y, resources.heartTarget - resources.heart.y, 1)
 
 	for _,f in ipairs(resources.fountain.fills) do
@@ -227,7 +241,7 @@ function resources.update()
 
 	end
 
-	resources.steprune.x = math.sin(Time.time/2)*6+320
+	resources.steprune.x = math.sin(Time.time/2)*6+500
 	resources.steprune.y = math.sin(Time.time/3 + math.pi*0.56)*4+420
 	resources.steprune.rotation = math.sin(Time.time/1.2 - math.pi*0.4)*2
 
