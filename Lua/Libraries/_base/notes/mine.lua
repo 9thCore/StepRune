@@ -53,7 +53,8 @@ function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease
 				local sofar = conductor.seconds - self.startsec
 				local total = self.endsec - self.startsec
 
-				self.parent.y = noteease(sofar, -self.distance, self.distance, total)
+				local dist = self.distance * receptor.wrap['distscale']
+				self.parent.y = noteease(sofar, -dist, dist, total)
 
 				self.sprite.rotation = conductor.seconds*90 + self.rotoffset
 

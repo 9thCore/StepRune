@@ -158,15 +158,15 @@ function manager.createreceptors()
 	receptors.roty = 0
 	receptors.rotz = 0
 
-	receptors.scaledist = 1
-	receptors.scalex = 1
-	receptors.scaley = 1
+	receptors.distscale = 1
+	receptors.xscale = 1
+	receptors.yscale = 1
 
-	receptors.arrowoffset = 0
+	receptors.pivot = 0
 
-	receptors.realcolor = {1,1,1}
+	receptors.color = {1,1,1}
 
-	local function newreceptor(xoffset,rot)
+	local function newreceptor(xoffset, rot)
 		local rcptr = {}
 
 		rcptr.parent = CreateSprite('empty', 'game_receptor') -- the invisible sprite used to parent the arrows
@@ -190,12 +190,77 @@ function manager.createreceptors()
 
 		rcptr.xoffset = xoffset
 		rcptr.z = 0
+		rcptr.origrot = rot
 
 		rcptr.object = receptors
 
 		rcptr.parent.SendToTop()
 
+
+		rcptr.wrap = {}
+		-- making the wrapped version of the parent and visual sprites
+
+		do
+
+			local rv = rcptr.visual
+			local rp = rcptr.parent
+
+			rcptr.wrap['x'] = 0
+			rcptr.wrap['y'] = 0
+
+			rcptr.wrap['xscale'] = 1
+			rcptr.wrap['yscale'] = 1
+
+			rcptr.wrap['distscale'] = 1
+
+			function rcptr.wrap.RotateVisual(rot, additive)
+				rv.rotation = rot + ((additive and rv.rotation) or rcptr.origrot)
+			end
+
+			function rcptr.wrap.RotateParent(rot, additive)
+				rp.rotation = rot + ((additive and rv.rotation) or 0)
+			end
+
+			function rcptr.wrap.Rotate(rot, additive)
+				rcptr.wrap.RotateVisual(rot, additive)
+				rcptr.wrap.RotateParent(rot, additive)
+			end
+
+			function rcptr.wrap.Scale(x, y, additive)
+
+				rcptr.wrap['xscale'] = x + ((additive and rcptr.wrap['xscale']) or 0)
+				rcptr.wrap['yscale'] = y + ((additive and rcptr.wrap['yscale']) or 0)
+
+				receptors.moved = true
+
+			end
+
+			function rcptr.wrap.ScaleDistance(x, y, additive)
+
+				rcptr.wrap['distscale'] = x + ((additive and rcptr.wrap['distscale']) or 0)
+
+			end
+
+			function rcptr.wrap.Move(x, y)
+				rcptr.wrap['x'] = rcptr.wrap['x'] + x
+				rcptr.wrap['y'] = rcptr.wrap['y'] + y
+
+				receptors.moved = true
+
+			end
+
+			function rcptr.wrap.MoveTo(x, y)
+				rcptr.wrap['x'] = x
+				rcptr.wrap['y'] = y
+
+				receptors.moved = true
+
+			end
+
+		end
+
 		return rcptr
+
 	end
 
 	receptors.left = newreceptor(-48, 270)
@@ -221,37 +286,43 @@ function manager.createreceptors()
 		self:SetAlpha(1)
 	end
 
-	function receptors:SetColor(col, g, b)
-		if type(col) ~= 'table' then col = {col, g, b} end
+	function receptors:SetColor(col, g, b, a)
+		if type(col) ~= 'table' then col = {col, g, b, a} end
 		if col[4] then self:SetAlpha(col[4]) end
 
-		self.realcolor = col
+		self.color = col
 
 	end
 
 	function receptors:Move(x,y)
 
-		x = x or 0
-		y = y or 0
-
 		self.x = self.x + x
 		self.y = self.y + y
+
+		self.moved = true
 
 	end
 
 	function receptors:MoveTo(x,y)
 
-		x = x or self.x
-		y = y or self.y
-
 		self.x = x
 		self.y = y
 
+		self.moved = true
+
 	end
 
-	function receptors:RotateZ(rot, additive)
+	function receptors:RotateZ(rot, all, additive)
 
 		self.rotz = (rot + ((additive and self.rotz) or 0))%360
+
+		if all then
+			for _,r in ipairs(receptordirections) do
+				self[r].wrap.RotateVisual(rot, additive)
+				self[r].wrap.RotateParent(rot + ((additive and (360 - self[r].origrot + 360)) or 0), additive) -- :)
+			end
+		end
+
 		self.moved = true
 
 	end
@@ -272,20 +343,16 @@ function manager.createreceptors()
 
 	function receptors:ScaleArrows(x, y, additive)
 
-		x = x or self.scalex
-		y = y or self.scaley
-
-		self.scalex = x + ((additive and self.scalex) or 0)
-		self.scaley = y + ((additive and self.scaley) or 0)
+		for _,r in ipairs(receptordirections) do
+			self[r].wrapvisual.Scale(x,y)
+		end
 		self.moved = true
 
 	end
 
 	function receptors:ScaleDistance(x, additive)
 
-		x = x or self.scaledist
-
-		self.scaledist = x + ((additive and self.scaledist) or 0)
+		self.distscale = x + ((additive and self.distscale) or 0)
 		self.moved = true
 
 	end
@@ -299,32 +366,9 @@ function manager.createreceptors()
 
 	function receptors:SetPivot(x, additive)
 
-		x = x or self.arrowoffset
-
-		self.arrowoffset = x + ((additive and self.arrowoffset) or 0)
+		self.pivot = x + ((additive and self.pivot) or 0)
 		self.moved = true
 
-	end
-
-	-- GETTERS --
-	function receptors:GetPos()
-		return self.x, self.y
-	end
-
-	function receptors:GetScale()
-		return self.scalex, self.scaley, self.scaledist
-	end
-
-	function receptors:GetRotation()
-		return self.rotx, self.roty, self.rotz
-	end
-
-	function receptors:GetColor()
-		return {self.realcolor[1], self.realcolor[2], self.realcolor[3]}
-	end
-
-	function receptors:GetPivot()
-		return self.arrowoffset
 	end
 
 	-- OTHER --
@@ -336,44 +380,44 @@ function manager.createreceptors()
 
 			local rec = self[r]
 
-			local newx = rec.parent.x
-			local newy = rec.parent.y
+			local newx = rec.wrap['x']
+			local newy = rec.wrap['y']
 
-			local scalex = self.scalex
-			local scaley = self.scaley
+			local xscale = rec.wrap['xscale']
+			local yscale = rec.wrap['yscale']
 
-			local offset = rec.xoffset + self.arrowoffset
+			local offset = rec.xoffset + self.pivot
 
 			-- scale
-			newx = offset * self.scaledist
+			newx = newx + offset * self.distscale
 
 			-- rotation
-			local posmat = {
-				{newx, 0, 0, 1},
+			local vec = {
+				{newx, 0, 0, 1}
 			}
 
-			local finalmat = rotate(posmat, self.roty, self.rotz)
+			local mat = rotate(vec, self.roty, self.rotz)
 
-			local x, y, z = finalmat[1][1], finalmat[1][2], finalmat[1][3]
+			local x, y, z = mat[1][1], mat[1][2], mat[1][3]
 
 			newx = x
-			newy = y + z/4*self.scaledist
+			newy = newy + y + z/4*self.distscale
 
-			rec.z = z -- store the z for later use
+			rec.z = z
 
-			scalex = scalex - z/(rec.visual.width*1.5)/8
-			scaley = scaley - z/(rec.visual.height*1.5)/8
+			xscale = xscale - z/(rec.visual.width*1.5)/6
+			yscale = yscale - z/(rec.visual.height*1.5)/6
 
 			-- finalising
 			newx = newx + self.x
 			newy = newy + self.y
 
-			rec.visual.MoveTo(newx, newy)
-
 			rec.parent.MoveTo(newx, newy)
-			rec.visual.Scale(scalex, scaley)
 
-			rec.explosion.Scale(scalex, scaley)
+			rec.visual.MoveTo(newx, newy)
+			rec.visual.Scale(xscale, yscale)
+
+			rec.explosion.Scale(xscale, yscale)
 
 		end
 
@@ -443,7 +487,7 @@ function manager.exit()
 	manager.reset()
 end
 
-function manager.explosion(idx, row, hit)
+function manager.explosion(row, hit)
 
 	hit = hit:gsub('_base/judgement/', '')
 
@@ -480,7 +524,7 @@ function manager.update()
 
 			local receptor = r[row].visual
 
-			local col = r.realcolor
+			local col = r.color
 			local red, g, b = col[1], col[2], col[3]
 
 			receptor.color = ((input.getkey(row) > 0) and {red*0.5, g*0.5, b*0.5}) or {red, g, b}
@@ -538,7 +582,7 @@ function manager.update()
 
 				if ishit then
 					manager.level.judge('perfect')
-					manager.explosion(n.row, receptordirections[n.row], 'perfect')
+					manager.explosion(receptordirections[n.row], 'perfect')
 				end
 
 				if n.type == 'mine' then
@@ -617,14 +661,14 @@ function manager.update()
 
 										if n.type ~= 'hold' then
 											manager.level.judge(newjudgement)
-											manager.explosion(n.row, row, newjudgement)
+											manager.explosion(row, newjudgement)
 
 											if n.type == 'mine' and manager.level.mineexplos then
 												NewAudio.PlaySound('boom', 'boom', false, 0.5)
 												manager.exploreal(n.receptor.visual.absx, n.receptor.visual.absy)
 											end
 										else
-											manager.explosion(n.row, row, ishit)
+											manager.explosion(row, ishit)
 										end
 
 										hitonrow[n.row] = true -- dont remove multiple arrows on the same row in the same frame
@@ -710,21 +754,74 @@ function manager.update()
 
 end
 
+function manager.wrapsinglereceptor(r)
+
+	local t = {}
+
+	setmetatable(t, {
+		__index = function(t,k)
+			if type(r.wrap[k]) == 'function' then
+				return r.wrap[k]
+			elseif k == 'x' then
+				return r.wrap['x']
+			elseif k == 'y' then
+				return r.wrap['y']
+			elseif k == 'rotation' then
+				return r.visual.rotation
+			elseif k == 'xscale' then
+				return r.wrap['xscale']
+			elseif k == 'yscale' then
+				return r.wrap['yscale']
+			elseif k == 'distscale' then
+				return r.wrap['distscale']
+			end
+		end,
+		__newindex = function(t,k,v)
+			if k == 'x' then
+				r.wrap.MoveTo(v, r.wrap['y'])
+			elseif k == 'y' then
+				r.wrap.MoveTo(r.wrap['x'], v)
+			elseif k == 'rotation' then
+				r.wrap.Rotate(v)
+			elseif k == 'xscale' then
+				r.wrap.Scale(v, r.wrap['yscale'])
+			elseif k == 'yscale' then
+				r.wrap.Scale(r.wrap['xscale'], v)
+			elseif k == 'distscale' then
+				r.wrap.ScaleDistance(v)
+			end
+		end,
+		__metatable = false
+	})
+
+	return t
+
+end
+
 function manager.wrapreceptors(r)
 
 	local t = {}
 
-	local recspecial = {
-		UpdatePos = true
+	local disallowed = {
+		UpdateReceptorPos = true, moved = true
+	}
+	local aliases = {
+		rotation = 'rotz'
 	}
 
-	-- functions the receptors have
+	-- the receptors themselves
+	t.left = manager.wrapsinglereceptor(r.left)
+	t.down = manager.wrapsinglereceptor(r.down)
+	t.up = manager.wrapsinglereceptor(r.up)
+	t.right = manager.wrapsinglereceptor(r.right)
+
+	-- functions
 	for fn,fc in pairs(r) do
 
-		if not recspecial[fn] then
+		if not disallowed[fn] then
 
 			if type(fc) == 'function' then
-				t[fn] = function(t,...)
+				t[fn] = function(...) -- . syntax, not :
 					return fc(r,...)
 				end
 			end
@@ -732,6 +829,44 @@ function manager.wrapreceptors(r)
 		end
 
 	end
+
+	setmetatable(t, {
+		__index = function(t,k)
+			if not disallowed[k] then
+				if aliases[k] then k = aliases[k] end
+				return r[k]
+			end
+		end,
+		__newindex = function(t,k,v)
+			if disallowed[k] then return end -- no
+
+			-- ._.
+			if k == 'x' then -- position
+				r:MoveTo(v, r.y)
+			elseif k == 'y' then
+				r:MoveTo(r.x, v)
+			elseif k == 'distscale' then -- scale
+				r:ScaleDistance(v)
+			elseif k == 'xscale' then
+				r:Scale(v, r.yscale)
+			elseif k == 'yscale' then
+				r:Scale(r.xscale, v)
+			elseif k == 'rotx' then -- 3d rotation
+				r:RotateX(v)
+			elseif k == 'roty' then
+				r:RotateY(v)
+			elseif k == 'rotz' or k == 'rotation' then
+				r:RotateZ(v)
+			elseif k == 'color' then -- color
+				r:SetColor(v)
+			elseif k == 'alpha' then
+				r:SetAlpha(v)
+			elseif k == 'pivot' then -- pivot
+				r:SetPivot(v)
+			end
+		end,
+		__metatable = false
+	})
 
 	return t
 

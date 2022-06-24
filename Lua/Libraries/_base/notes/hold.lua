@@ -95,11 +95,13 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 				-- moving the note
 				local sofar = conductor.seconds - self.startsec
 				local total = self.endsec - self.startsec
+				
+				local dist = self.distance * receptor.wrap['distscale']
 
 				if not self.holding then -- dont move if we're holding
 
 					if not self.heldonce then
-						self.parent.y = noteease(sofar, -self.distance, self.distance, total)
+						self.parent.y = noteease(sofar, -dist, dist, total)
 					else
 						self:alphatransition(conductor.seconds - self.stopholdsec, 1, -1, 0.125)
 					end
@@ -233,10 +235,11 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 
 		function self:fixrot()
 			self.sprite.rotation = receptor.visual.rotation + self.rotoffset
-			self.holdparent.rotation = 0 -- TODO: make this the correct value when full receptor rotation is added
+			self.holdparent.rotation = receptor.parent.rotation + (((receptor.wrap['distscale'] < 0) and 180) or 0)
 		end
 
 		function self:fixscale()
+
 			self.sprite.xscale = receptor.visual.xscale * self.scalex
 			self.sprite.yscale = receptor.visual.yscale * self.scaley
 
@@ -273,10 +276,10 @@ function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease
 			self.holdend.y = -bodylength
 
 			-- making the hold body
-			self.holdbody.yscale = bodylength / self.holdbody.height
+			self.holdbody.yscale = bodylength / self.holdbody.height * math.abs(receptor.wrap['distscale'])
 
 			local multiplier = self.initialbodylength / bodylength
-			local tiley = self.initialtile / multiplier
+			local tiley = math.abs(self.initialtile / multiplier) * math.abs(receptor.wrap['distscale'])
 
 			self.holdbody.shader.SetFloat('TilesY', tiley)
 

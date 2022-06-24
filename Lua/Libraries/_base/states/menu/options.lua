@@ -24,6 +24,37 @@ local keys = {
 	'left', 'down', 'up', 'right'
 }
 local alreadybound = {}
+	
+-- keys you can rebind to
+local possiblekeys = {
+	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+	'Period', 'Comma', 'Slash', 'Semicolon', 'Quote', 'LeftBracket', 'RightBracket', 'Equals', 'Minus',
+	'Alpha0', 'Alpha1', 'Alpha2', 'Alpha3', 'Alpha4', 'Alpha5', 'Alpha6', 'Alpha7', 'Alpha8', 'Alpha9'
+}
+
+-- if a key has a specific name, include it here
+local keytoname = {
+	Period = '.',
+	Comma = ',',
+	Slash = '/',
+	Semicolon = ';',
+	Quote = '\'',
+	LeftBracket = '[',
+	RightBracket = ']',
+	Equals = '=',
+	Minus = '-',
+	
+	Alpha0 = '0',
+	Alpha1 = '1',
+	Alpha2 = '2',
+	Alpha3 = '3',
+	Alpha4 = '4',
+	Alpha5 = '5',
+	Alpha6 = '6',
+	Alpha7 = '7',
+	Alpha8 = '8',
+	Alpha9 = '9'
+}
 
 local rebindkey = 1
 
@@ -119,7 +150,12 @@ end
 local optiont = {
 	{ -- rebind
 		text = function(idx)
-			settext(idx, 'Rebind Controls [' .. input.keys.left .. input.keys.down .. input.keys.up .. input.keys.right .. ']')
+			local l = keytoname[input.keys.left] or input.keys.left
+			local d = keytoname[input.keys.down] or input.keys.down
+			local u = keytoname[input.keys.up] or input.keys.up
+			local r = keytoname[input.keys.right] or input.keys.right
+
+			settext(idx, 'Rebind Controls [' .. l .. d .. u .. r .. ']')
 		end,
 		interact = function()
 
@@ -442,10 +478,6 @@ function options.update(setstate)
 		end
 
 		resources.update(true)
-
-		local possiblekeys = {
-			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
-		}
 
 		for _,k in ipairs(possiblekeys) do
 

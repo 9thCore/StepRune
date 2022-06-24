@@ -5,10 +5,8 @@ for i=1,4 do
 
 	local r = receptors[i]
 
-	r:Show()
-	r:SetPivot(48)
-	r:Move(0,i/4)
-	r:RotateY(90*i)
+	r.left.ScaleDistance(0.5)
+	r.up.ScaleDistance(-1)
 
 end
 
@@ -16,7 +14,7 @@ function Update()
 
 	for i,r in ipairs(receptors) do
 
-		r:RotateY(Time.dt*120, true)
+		r.RotateZ(1, true, true)
 
 	end
 

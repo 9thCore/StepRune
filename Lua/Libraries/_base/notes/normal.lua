@@ -51,7 +51,8 @@ function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdea
 				local sofar = conductor.seconds - self.startsec
 				local total = self.endsec - self.startsec
 
-				self.parent.y = noteease(sofar, -self.distance, self.distance, total)
+				local dist = self.distance * receptor.wrap['distscale']
+				self.parent.y = noteease(sofar, -dist, dist, total)
 
 				-- appear
 				self:alphatransition(sofar, 0, 1, 0.125)
