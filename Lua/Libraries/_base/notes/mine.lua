@@ -5,14 +5,14 @@ local easing = require 'easing'
 
 NewAudio.CreateChannel('boom')
 
-function notemine.spawn(iscopy, duration, receptor, distance, noteease, holdease)
+function notemine.spawn(iscopy, duration, receptor, distance)
 
 	local note = {}
 
 	note.type = 'mine'
 	note.created = false
 
-	function note:create()
+	function note:create(noteease, holdease)
 
 		self.created = true
 

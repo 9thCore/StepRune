@@ -3,6 +3,7 @@ local lockdown = {}
 -- creates new environment where functions and objects are locked down to prevent charts messing with the basegame
 -- in a separate file to avoid clogging up level.lua with a long thing, its already clogged enough :[
 
+local easing = require 'easing'
 local conductor = require '_base/conductor'
 local notemanager = require '_base/notes/manager'
 
@@ -55,6 +56,21 @@ function lockdown.getenv(ot, st)
 	function specialvars.UnloadSprite(s)
 		if s:lower():find('_base') then return end
 		return UnloadSprite(s)
+	end
+
+	specialvars.Easing = {}
+	setmetatable(specialvars.Easing, {
+		__index = function(t,k)
+			return easing[k]
+		end,
+		__metatable = false
+	})
+	function specialvars.Easing.Random()
+		local t = {}
+		for k,_ in pairs(easing) do
+			t[#t+1] = k
+		end
+		return easing[t[math.random(1,#t)]]
 	end
 
 	specialvars.Conductor = conductor.getobject()

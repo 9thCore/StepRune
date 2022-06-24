@@ -91,10 +91,10 @@ end
 
 function manager.create(note, i)
 
-	note:create()
+	note:create(manager.noteease, manager.holdease)
 
 	for _,n in ipairs(note.nt) do
-		n:create()
+		n:create(manager.noteease, manager.holdease)
 	end
 
 	local line = note.line
@@ -115,7 +115,7 @@ function manager.spawn(type, dur, line, row, measure, distance, ...)
 	local receptordir = receptordirections[row]
 	local receptor = manager.receptors[1][receptordir] -- get first receptor, this will be the parent of the note we track and update
 
-	local note = notetypes[type].spawn(false, dur, receptor, distance, manager.noteease, manager.holdease, ...)
+	local note = notetypes[type].spawn(false, dur, receptor, distance, ...)
 	note.row = row
 	note.measure = measure
 	note.line = line
@@ -127,7 +127,7 @@ function manager.spawn(type, dur, line, row, measure, distance, ...)
 		local rcptrs = manager.receptors[i]
 		local rcptr = rcptrs[receptordir]
 
-		local _note = notetypes[type].spawn(true, dur, rcptr, distance, manager.noteease, manager.holdease, ...)
+		local _note = notetypes[type].spawn(true, dur, rcptr, distance, ...)
 
 		-- add them to the table
 		note.nt[#note.nt+1] = _note
@@ -895,6 +895,14 @@ function manager.getobject()
 
 		return t
 
+	end
+
+	function obj.SetNoteEasing(func)
+		manager.noteease = func
+	end
+
+	function obj.SetHoldEasing(func)
+		manager.holdease = func
 	end
 
 	return obj

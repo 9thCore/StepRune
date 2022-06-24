@@ -3,14 +3,14 @@ local notenormal = {}
 local conductor = require '_base/conductor'
 local easing = require 'easing'
 
-function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdease)
+function notenormal.spawn(iscopy, duration, receptor, distance)
 
 	local note = {}
 
 	note.type = 'normal'
 	note.created = false
 
-	function note:create()
+	function note:create(noteease, holdease)
 
 		self.created = true
 

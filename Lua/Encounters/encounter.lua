@@ -13,6 +13,8 @@ CreateLayer('menu_cover', 'Top', false)
 CreateLayer('game_cover', 'menu_cover', false)
 CreateSprite('black', 'menu_cover') -- lowest so we dont really care enough about it to store it in a variable
 
+math.randomseed(os.clock())
+
 local function loadbase(name)
 	return require('_base/'..name)
 end

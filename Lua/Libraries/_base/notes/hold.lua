@@ -6,14 +6,14 @@ local input = require '_base/input'
 
 local holdgrace = 0.15
 
-function notehold.spawn(iscopy, duration, receptor, distance, noteease, holdease, holdendbeat)
+function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 
 	local note = {}
 
 	note.type = 'hold'
 	note.created = false
 
-	function note:create()
+	function note:create(noteease, holdease)
 
 		self.created = true
 
