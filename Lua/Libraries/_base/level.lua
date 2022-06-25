@@ -621,7 +621,7 @@ function level.getobject()
 	end
 
 	function obj.GetGrade()
-		return level.getrank()
+		return level.getrank()[1]
 	end
 
 	function obj.GetHitWindows()
@@ -635,15 +635,7 @@ function level.getobject()
 	function obj.GetDifficulty()
 		for _,d in ipairs(level.difficulties) do
 			if d.difficulty == level.difficulty then
-				return {
-					difficulty = d.difficulty,
-					name = d.name,
-					hitwindows = {
-						{'perfect', d.hitwindows[1][2]},
-						{'great', d.hitwindows[2][2]},
-						{'bad', d.hitwindows[3][2]}
-					}
-				}
+				return d.name
 			end
 		end
 	end
