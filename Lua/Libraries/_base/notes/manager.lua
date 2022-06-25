@@ -1003,7 +1003,7 @@ function manager.getobject()
 
 	function obj.GetNotes()
 		local t = {}
-		for i=1,4 do
+		for i=1,#manager.receptors do
 			t[i] = {}
 		end
 
@@ -1016,17 +1016,17 @@ function manager.getobject()
 		return t
 	end
 
-	function obj.GetReceptor(idx)
+	function obj.GetReceptorSet(idx)
 		if idx < 1 or idx > #manager.receptors then return end
 		return manager.wrapreceptors(manager.receptors[idx])
 	end
 
-	function obj.GetReceptors()
+	function obj.GetReceptorSets()
 
 		local t = {}
 
 		for i,_ in ipairs(manager.receptors) do
-			t[#t+1] = obj.GetReceptor(i)
+			t[#t+1] = obj.GetReceptorSet(i)
 		end
 
 		return t
