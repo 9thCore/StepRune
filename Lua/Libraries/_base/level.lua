@@ -1,15 +1,12 @@
 local level = {}
 
-CreateLayer('game_receptor', 'game_cover', false)
-CreateLayer('game_ui', 'game_receptor', false)
-
 NewAudio.CreateChannel('game_music')
 
+local layers = require '_base/layers'
 local input = require '_base/input'
 local conductor = require '_base/conductor'
 local measures = require '_base/notes/measures'
 local notemanager = require '_base/notes/manager'
-local loader = require '_base/loader'
 local judgement = require '_base/notes/judgement'
 local ui = require '_base/ui'
 local easing = require '_base/easing'
@@ -350,10 +347,14 @@ function level.exit()
 
 	playstate.exit()
 
-	for _,t in ipairs(level.chartobjects) do
-		local v, vtype = t[1], t[2]
-		if vtype == 'sprite' or vtype == 'bullet' then
-			v.Remove()
+	for _,v in ipairs(level.chartobjects) do
+		v.Remove()
+	end
+
+	for name,layer in pairs(layers.layers) do
+		if not layers.baselayers[name] then
+			layer.spr.Remove()
+			layers.layers[name] = nil
 		end
 	end
 

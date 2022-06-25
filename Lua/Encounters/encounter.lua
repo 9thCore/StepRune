@@ -8,22 +8,18 @@ enemypositions = {}
 noscalerotationbug = true
 -- unescape = true -- TODO at the end: uncomment this
 
--- cover, also pretty much base layer for the game and menu
-CreateLayer('menu_cover', 'Top', false)
-CreateLayer('game_cover', 'menu_cover', false)
+local layers = require '_base/layers'
+local statemanager = require '_base/states/manager'
+local reader = require '_base/reader'
+local conductor = require '_base/conductor'
+local level = require '_base/level'
+local ui = require '_base/ui'
+local lockdown = require '_base/lockdown'
+lockdown.populate()
+
 CreateSprite('black', 'menu_cover') -- lowest so we dont really care enough about it to store it in a variable
 
 math.randomseed(os.clock())
-
-local function loadbase(name)
-	return require('_base/'..name)
-end
-
-local statemanager = loadbase 'states/manager'
-local reader = loadbase 'reader'
-local conductor = loadbase 'conductor'
-local level = loadbase 'level'
-local ui = loadbase 'ui'
 
 -- initialize
 function EncounterStarting()

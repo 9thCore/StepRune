@@ -4,9 +4,6 @@ local resources = {}
 
 local easing = require '_base/easing'
 
-CreateLayer('menu_bg', 'menu_cover', false)
-CreateLayer('menu_ui', 'menu_bg', false)
-
 resources.heart = CreateSprite('ut-heart', 'menu_ui')
 resources.heart.Scale(1.5, 1.5)
 resources.heart.color = {1,0,0}

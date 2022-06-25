@@ -19,7 +19,6 @@ function ui.init()
 
 	end
 
-
 	-- hp
 	do
 
@@ -37,7 +36,7 @@ function ui.init()
 		ui.hpbar.fill = CreateSprite('px', 'game_ui')
 		ui.hpbar.fill.SetPivot(0,1)
 		ui.hpbar.fill.SetParent(ui.hpbar.parent)
-		ui.hpbar.fill.MoveTo(12,-3)
+		ui.hpbar.fill.MoveTo(9,-3)
 
 		ui.hpbar.startfill = 1
 		ui.hpbar.filltarget = 1
@@ -191,6 +190,9 @@ end
 
 function ui.setoffset(x,y)
 
+	ui.offsetx = x
+	ui.offsety = y
+
 	ui.acc.x = 10 + x
 	ui.acc.y = 10 + y
 
@@ -285,6 +287,47 @@ function ui.update()
 			ui.combo.alpha = easing.inSine(math.min(timer-8/6, 1/4), 1, -1, 1/4) * ui.alpha
 		end
 	end
+
+end
+
+function ui.getobject()
+
+	local obj = {}
+
+	function obj.SetAlpha(alpha)
+		ui.setalpha(alpha)
+	end
+
+	function obj.SetOffset(x, y, additive)
+		x = x + ((additive and ui.offsetx) or 0)
+		y = y + ((additive and ui.offsety) or 0)
+
+		ui.setoffset(x, y)
+	end
+
+	setmetatable(obj, {
+		__index = function(t,k)
+			if k == 'x' then
+				return ui.offsetx
+			elseif k == 'y' then
+				return ui.offsety
+			elseif k == 'alpha' then
+				return ui.alpha
+			end
+		end,
+		__newindex = function(t,k,v)
+			if k == 'x' then
+				ui.setoffset(v, ui.offsety)
+			elseif k == 'y' then
+				ui.setoffset(ui.offsetx, v)
+			elseif k == 'alpha' then
+				ui.setalpha(v)
+			end
+		end,
+		__metatable = false
+	})
+
+	return obj
 
 end
 
