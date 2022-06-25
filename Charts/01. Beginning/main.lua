@@ -1,5 +1,5 @@
-rec = Notes.GetReceptorSet(1)
+receptorset = Notes.GetReceptorSet(1)
 
-function LateUpdate()
-	rec.RotateY(2, true)
+function Update()
+    receptorset.Scale(-0.01, -0.01, true)
 end

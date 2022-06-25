@@ -357,7 +357,7 @@ function manager.createreceptors()
 	function receptors:ScaleArrows(x, y, additive)
 
 		for _,r in ipairs(receptordirections) do
-			self[r].wrapvisual.Scale(x,y)
+			self[r].wrap.Scale(x, y, additive)
 		end
 		self.moved = true
 
