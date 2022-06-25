@@ -647,9 +647,6 @@ function level.getobject()
 			end
 		end
 	end
-	function obj.SetScrollSpeed(val)
-		level.scrollspeed = val
-	end
 
 	return obj
 
