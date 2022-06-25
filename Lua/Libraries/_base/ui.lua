@@ -294,7 +294,8 @@ function ui.getobject()
 
 	local obj = {}
 
-	function obj.SetAlpha(alpha)
+	function obj.SetAlpha(alpha, additive)
+		alpha = alpha + ((additive and ui.alpha) or 0)
 		ui.setalpha(alpha)
 	end
 
