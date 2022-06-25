@@ -1,7 +1,7 @@
 local notenormal = {}
 
 local conductor = require '_base/conductor'
-local easing = require 'easing'
+local easing = require '_base/easing'
 local spritehelper = require 'spritehelper'
 
 function notenormal.spawn(iscopy, duration, receptor, distance, noteease, holdease)

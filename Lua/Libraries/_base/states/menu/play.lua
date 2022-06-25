@@ -96,7 +96,7 @@ function play.update(setstate)
 			local path = ChartPath .. '/' .. resources.text[resources.heartSelected][2]
 
 			if not Misc.DirExists(path) then
-				NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.5)
+				NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.25)
 				error('error while loading\n\nUh oh, an error was encountered while loading this chart!\n\nThe chart could not be found! Are you sure it\'s still in the Charts folder?', -1)
 			end
 

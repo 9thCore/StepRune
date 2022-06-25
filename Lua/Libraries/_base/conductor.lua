@@ -191,8 +191,7 @@ local function wrapinsertevent(...)
 				return wrappedevents[w][k]
 			end
 		end,
-		__newindex = function()
-		end,
+		__newindex = function() end,
 		__metatable = false
 	})
 

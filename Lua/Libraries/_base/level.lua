@@ -12,7 +12,7 @@ local notemanager = require '_base/notes/manager'
 local loader = require '_base/loader'
 local judgement = require '_base/notes/judgement'
 local ui = require '_base/ui'
-local easing = require 'easing'
+local easing = require '_base/easing'
 local save = require '_base/save'
 local playstate = require '_base/states/play'
 local lockdown = require '_base/lockdown'
@@ -66,6 +66,8 @@ local STATE_DEATHEXIT = 5
 
 level.state = STATE_PLAY
 level.statetimer = 0
+
+level.killable = true
 
 level.savedrank = false
 level.gottenrank = nil
@@ -228,6 +230,8 @@ end
 
 function level.reset()
 
+	level.killable = true
+
 	level.gover.alpha = 0
 	
 	level.overlay.alpha = 0
@@ -319,7 +323,7 @@ function level.judge(j)
 	-- update combo
 	ui.updatecombo()
 
-	if level.hp <= 0 then -- dead.
+	if level.hp <= 0 and level.killable and not level.autoplay then -- dead.
 
 		level.state = STATE_DEATH
 		level.statetimer = 0
@@ -490,10 +494,24 @@ function level.update()
 
 	if level.state < STATE_DEATH then
 
-		if type(ChartUpdate) == 'function' then ChartUpdate() end
+		if type(ChartUpdate) == 'function' then
+			local res, err = pcall(ChartUpdate)
+			if not res then
+				NewAudio.Stop('game_music')
+				NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.25)
+				error('error in chart script\n\n' .. err, -1)
+			end
+		end
 		notemanager.update()
 		ui.update()
-		if type(ChartLateUpdate) == 'function' then ChartLateUpdate() end
+		if type(ChartLateUpdate) == 'function' then
+			local res, err = pcall(ChartLateUpdate)
+			if not res then
+				NewAudio.Stop('game_music')
+				NewAudio.PlayMusic('menu_music', 'danceofdog', true, 0.25)
+				error('error in chart script\n\n' .. err, -1)
+			end
+		end
 
 		if level.state >= STATE_FINISH and level.state < STATE_DEATH then
 
@@ -577,10 +595,10 @@ function level.getobject()
 
 	local obj = {}
 
-	function obj.SetHP(newhp)
-		level.hp = math.min(math.max(newhp, 1), 100)
-		ui.hpbar.easefill(level.hp/100)
+	function obj.SetKillable(bool)
+		level.killable = not not bool
 	end
+
 	function obj.GetHP()
 		return level.hp
 	end
@@ -588,18 +606,23 @@ function level.getobject()
 	function obj.GetHits()
 		return level.hits
 	end
+
 	function obj.GetMisses()
 		return level.misses
 	end
+
 	function obj.GetAcc()
 		return level.acc
 	end
+
 	function obj.GetCombo()
 		return level.combo
 	end
+
 	function obj.GetGrade()
 		return level.getrank()
 	end
+
 	function obj.GetHitWindows()
 		return { -- make a new table so as to avoid being able to overwrite the real one
 			{'perfect', level.hitwindows[1][2]},
@@ -607,6 +630,7 @@ function level.getobject()
 			{'bad', level.hitwindows[3][2]}
 		}
 	end
+
 	function obj.GetDifficulty()
 		for _,d in ipairs(level.difficulties) do
 			if d.difficulty == level.difficulty then

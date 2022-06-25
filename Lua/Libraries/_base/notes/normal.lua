@@ -1,7 +1,7 @@
 local notenormal = {}
 
 local conductor = require '_base/conductor'
-local easing = require 'easing'
+local easing = require '_base/easing'
 
 function notenormal.spawn(iscopy, duration, receptor, distance)
 
@@ -16,10 +16,12 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 
 		self.receptor = receptor
 
-		self.realalpha = 0
 		self.rotoffset = 0
-		self.scalex = 1
-		self.scaley = 1
+		self.xscale = 1
+		self.yscale = 1
+
+		self.x = 0
+		self.y = 0
 
 		self.parent = CreateSprite('empty', 'game_receptor')
 		self.parent.SetParent(receptor.parent)
@@ -34,14 +36,14 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 		self.sprite.y = 0
 		self.sprite.alpha = 0
 
-		self.startsec = conductor.seconds
-		self.endsec = conductor.seconds + duration
-
 		if not iscopy then -- we dont actually need all the functions if this is just a sprite that copies the base!
 
 			self.missed = false
 			self.removed = false
 			self.checkhit = true
+
+			self.startsec = conductor.seconds
+			self.endsec = conductor.seconds + duration
 
 			self.distance = distance
 
@@ -52,7 +54,8 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 				local total = self.endsec - self.startsec
 
 				local dist = self.distance * receptor.wrap['distscale']
-				self.parent.y = noteease(sofar, -dist, dist, total)
+				self.parent.y = noteease(sofar, -dist, dist, total) + self.y
+				self.parent.x = self.x
 
 				-- appear
 				self:alphatransition(sofar, 0, 1, 0.125)
@@ -89,16 +92,20 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 
 			function self:copy(note)
 
-				self.parent.x = note.parent.x
-				self.parent.y = note.parent.y
+				self.parent.x = note.parent.x - note.x + self.x
+				self.parent.y = note.parent.y - note.y + self.y
 
 			end
 
 		end
 
-		function self:rotate(rot, additive)
-			additive = not not additive
+		function self:scale(x, y, additive)
+			self.xscale = x + ((additive and self.xscale) or 0)
+			self.yscale = y + ((additive and self.yscale) or 0)
+			self:fixscale()
+		end
 
+		function self:rotate(rot, additive)
 			self.rotoffset = rot + ((additive and self.rotoffset) or 0)
 			self:fixrot()
 		end
@@ -109,8 +116,8 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 
 		function self:fixscale()
 
-			self.sprite.xscale = receptor.visual.xscale * self.scalex
-			self.sprite.yscale = receptor.visual.yscale * self.scaley
+			self.sprite.xscale = receptor.visual.xscale * self.xscale
+			self.sprite.yscale = receptor.visual.yscale * self.yscale
 
 		end
 
@@ -134,11 +141,19 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 			local alpha = easing.linear(math.min(t,d), start, change, d)
 			self:setalpha(alpha)
 
+			if self.nt then
+				for _,n in ipairs(self.nt) do
+					n:setalpha(alpha)
+				end
+			end
+
 		end
 
 		function self:setcolor(color)
 
 			self.sprite.color = color
+
+			if color[4] then self:setalpha(color[4]) end
 
 			if self.nt then
 				for _,n in ipairs(self.nt) do
@@ -150,14 +165,7 @@ function notenormal.spawn(iscopy, duration, receptor, distance)
 
 		function self:setalpha(alpha)
 
-			self.realalpha = alpha
 			self.sprite.alpha = alpha * receptor.visual.alpha
-
-			if self.nt then
-				for _,n in ipairs(self.nt) do
-					n:setalpha(alpha)
-				end
-			end
 
 		end
 

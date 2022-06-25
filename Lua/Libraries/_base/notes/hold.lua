@@ -1,7 +1,7 @@
 local notehold = {}
 
 local conductor = require '_base/conductor'
-local easing = require 'easing'
+local easing = require '_base/easing'
 local input = require '_base/input'
 
 local holdgrace = 0.15
@@ -19,10 +19,12 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 
 		self.receptor = receptor
 
-		self.realalpha = 0
 		self.rotoffset = 0
-		self.scalex = 1
-		self.scaley = 1
+		self.xscale = 1
+		self.yscale = 1
+
+		self.x = 0
+		self.y = 0
 
 		self.parent = CreateSprite('empty', 'game_receptor')
 		self.parent.SetParent(receptor.parent)
@@ -101,7 +103,9 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 				if not self.holding then -- dont move if we're holding
 
 					if not self.heldonce then
-						self.parent.y = noteease(sofar, -dist, dist, total)
+						local dist = self.distance * receptor.wrap['distscale']
+						self.parent.y = noteease(sofar, -dist, dist, total) + self.y
+						self.parent.x = self.x
 					else
 						self:alphatransition(conductor.seconds - self.stopholdsec, 1, -1, 0.125)
 					end
@@ -151,8 +155,6 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 						n:alphatransition(sofar, 0, 1, 0.125)
 					end
 				end
-
-				self:setalpha(self.realalpha)
 
 				if self.holding then
 
@@ -205,13 +207,19 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 
 			function self:copy(note)
 
-				self.parent.x = note.parent.x
-				self.parent.y = note.parent.y
+				self.parent.x = note.parent.x - note.x + self.x
+				self.parent.y = note.parent.y - note.y + self.y
 
 				self.holdbody.shader.SetFloat('TilesY', note.holdbody.shader.GetFloat('TilesY'))
 
 			end
 
+		end
+
+		function self:scale(x, y, additive)
+			self.xscale = x + ((additive and self.xscale) or 0)
+			self.yscale = y + ((additive and self.yscale) or 0)
+			self:fixscale()
 		end
 
 		function self:rotate(rot, additive)
@@ -224,6 +232,8 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 		function self:setcolor(color)
 
 			self.sprite.color = color
+
+			if color[4] then self:setalpha(color[4]) end
 
 			if self.nt then
 				for _,n in ipairs(self.nt) do
@@ -240,16 +250,16 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 
 		function self:fixscale()
 
-			self.sprite.xscale = receptor.visual.xscale * self.scalex
-			self.sprite.yscale = receptor.visual.yscale * self.scaley
+			self.sprite.xscale = receptor.visual.xscale * self.xscale
+			self.sprite.yscale = receptor.visual.yscale * self.yscale
 
 			self:setbodytile()
 
-			self.holdbody.xscale = receptor.visual.xscale * self.scalex
-			self.holdbody.yscale = self.holdbody.yscale * receptor.visual.yscale * self.scaley
+			self.holdbody.xscale = receptor.visual.xscale * self.xscale
+			self.holdbody.yscale = self.holdbody.yscale * receptor.visual.yscale * self.yscale
 
-			self.holdend.xscale = receptor.visual.xscale * self.scalex
-			self.holdend.yscale = receptor.visual.yscale * self.scaley
+			self.holdend.xscale = receptor.visual.xscale * self.xscale
+			self.holdend.yscale = receptor.visual.yscale * self.yscale
 
 			self.holdend.x = self.holdbody.x
 			self.holdend.y = -self.holdbody.yscale*self.holdbody.height
@@ -316,21 +326,19 @@ function notehold.spawn(iscopy, duration, receptor, distance, holdendbeat)
 
 			self:setalpha(alpha)
 
-		end
-
-		function self:setalpha(alpha)
-
-			self.realalpha = alpha
-
-			self.sprite.alpha = alpha * receptor.visual.alpha
-			self.holdbody.alpha = alpha * receptor.visual.alpha
-			self.holdend.alpha = alpha * receptor.visual.alpha
-
 			if self.nt then
 				for _,n in ipairs(self.nt) do
 					n:setalpha(alpha)
 				end
 			end
+
+		end
+
+		function self:setalpha(alpha)
+
+			self.sprite.alpha = alpha * receptor.visual.alpha
+			self.holdbody.alpha = alpha * receptor.visual.alpha
+			self.holdend.alpha = alpha * receptor.visual.alpha
 
 		end
 

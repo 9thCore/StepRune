@@ -3,7 +3,7 @@ local lockdown = {}
 -- creates new environment where functions and objects are locked down to prevent charts messing with the basegame
 -- in a separate file to avoid clogging up level.lua with a long thing, its already clogged enough :[
 
-local easing = require 'easing'
+local easing = require '_base/easing'
 local conductor = require '_base/conductor'
 local notemanager = require '_base/notes/manager'
 

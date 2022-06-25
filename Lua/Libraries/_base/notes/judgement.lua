@@ -1,6 +1,6 @@
 local judgement = {}
 
-local easing = require 'easing'
+local easing = require '_base/easing'
 
 function judgement.update()
 	judgement.judgetext['timer'] = judgement.judgetext['timer'] + 1

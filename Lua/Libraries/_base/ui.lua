@@ -1,6 +1,6 @@
 local ui = {}
 
-local easing = require 'easing'
+local easing = require '_base/easing'
 
 function ui.init()
 

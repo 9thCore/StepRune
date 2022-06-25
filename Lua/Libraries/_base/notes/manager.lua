@@ -19,7 +19,7 @@ local colors = require '_base/notes/colors'
 local measures = require '_base/notes/measures'
 local conductor = require '_base/conductor'
 local input = require '_base/input'
-local easing = require 'easing'
+local easing = require '_base/easing'
 
 manager.noteease = easing.linear
 manager.holdease = easing.linear
@@ -102,7 +102,14 @@ function manager.create(note, i)
 		measures.addnote(note, line)
 		manager.setnotecolor(note)
 	else
-		note:SetColor(colors.getinvalid()) -- automatically set to gray color if we dont have a line, such as when a note is created via the chart lua
+		local col = colors.getinvalid()
+		note:setcolor(col) -- automatically set to gray color if we dont have a line, such as when a note is created via the chart lua
+
+		if note.nt then
+			for _,n in ipairs(note.nt) do
+				n:setcolor(col)
+			end
+		end
 	end
 
 	manager.notes[#manager.notes+1] = note
@@ -142,6 +149,12 @@ function manager.setnotecolor(note)
 
 	local color = colors.getcolor(note)
 	note:setcolor(color)
+
+	if note.nt then
+		for _,n in ipairs(note.nt) do
+			n:setcolor(color)
+		end
+	end
 
 end
 
@@ -872,12 +885,135 @@ function manager.wrapreceptors(r)
 
 end
 
+function manager.wrapnote(n, basen)
+
+	local t = {}
+
+	function t.Move(x, y)
+		if not n.created then error('You tried to move a note but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		n.x = n.x + x
+		n.y = n.y + y
+	end
+
+	function t.MoveTo(x, y)
+		if not n.created then error('You tried to move a note but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		n.x = x
+		n.y = y
+	end
+
+	function t.Rotate(rot, additive)
+		if not n.created then error('You tried to set a note\'s rotation but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		n:rotate(rot, additive)
+	end
+
+	function t.Scale(x, y, additive)
+		if not n.created then error('You tried to set a note\'s scale but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		n:scale(x, y, additive)
+	end
+
+	function t.SetColor(col)
+		if not n.created then error('You tried to set a note\'s color but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		n:setcolor(col)
+	end
+
+	function t.SetAlpha(alpha)
+		if not n.created then error('You tried to set a note\'s alpha but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		n:setalpha(alpha)
+	end
+
+	function t.GetProgress()
+		if not n.created then error('You tried to get a note\'s progress but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+		return (conductor.seconds - basen.startsec) / (basen.endsec - basen.startsec)
+	end
+
+	function t.GetHoldProgress()
+		if n.type ~= 'hold' then error('You tried to get the hold progress of a note but it\'s not a hold!', 2) end
+		if not n.created then error('You tried to get a note\'s hold progress but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+
+		return math.max(0, (conductor.seconds - (basen.holdstartsec or basen.endsec)) / (basen.holdendsec - basen.endsec))
+	end
+
+	setmetatable(t, {
+		__index = function(t,k)
+
+			if k == 'removed' then
+				return n.removed
+			elseif k == 'created' then
+				return n.created
+			end
+
+			if not n.created then error('You tried to get a note\'s ' .. tostring(k) .. ' property but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+
+			if k == 'x' then -- movement
+				return n.x
+			elseif k == 'y' then
+				return n.y
+			elseif k == 'xscale' then -- scale
+				return n.xscale
+			elseif k == 'yscale' then
+				return n.yscale
+			elseif k == 'rotation' then -- rotation
+				return n.rotoffset
+			elseif k == 'color' then -- color
+				return n.sprite.color
+			elseif k == 'alpha' then
+				return n.sprite.alpha
+			end
+		end,
+		__newindex = function(t,k,v)
+			if not n.created then error('You tried to set a note\'s ' .. tostring(k) .. ' property but it was not created yet!\nCheck .created before doing anything with it!', 2) end
+
+			if k == 'x' then -- movement
+				n.x = v
+			elseif k == 'y' then
+				n.y = v
+			elseif k == 'xscale' then -- scale
+				n:scale(v, n.yscale)
+			elseif k == 'yscale' then
+				n:scale(n.xscale, v)
+			elseif k == 'rotation' then -- rotation
+				n:rotate(v)
+			elseif k == 'color' then -- color
+				n:setcolor(v)
+			elseif k == 'alpha' then
+				n:setalpha(v)
+			end
+		end,
+		__metatable = false
+	})
+
+	return t
+
+end
+
 function manager.getobject()
 
 	local obj = {}
 
-	function obj.GetNote(idx)
-		return manager.getnote(idx) -- TODO: wrap this
+	function obj.GetNote(idx, ridx)
+		local n = manager.getnote(idx)
+		local basen = n
+
+		if ridx > 1 then
+			n = n.nt[ridx-1]
+		end
+
+		return manager.wrapnote(n, basen)
+	end
+
+	function obj.GetNotes()
+		local t = {}
+		for i=1,4 do
+			t[i] = {}
+		end
+
+		for _,n in ipairs(manager.allnotes) do
+			t[1][#t[1]+1] = manager.wrapnote(n, n)
+			for i,_n in ipairs(n.nt) do
+				t[i+1][#t[i+1]+1] = manager.wrapnote(_n, n)
+			end
+		end
+		return t
 	end
 
 	function obj.GetReceptor(idx)

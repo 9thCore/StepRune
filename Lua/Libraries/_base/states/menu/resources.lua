@@ -2,7 +2,7 @@
 
 local resources = {}
 
-local easing = require 'easing'
+local easing = require '_base/easing'
 
 CreateLayer('menu_bg', 'menu_cover', false)
 CreateLayer('menu_ui', 'menu_bg', false)
