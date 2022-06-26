@@ -385,9 +385,16 @@ function manager.createreceptors()
 
 	function receptors:ScaleArrows(x, y, additive)
 
+		local diffx = x - self.xscale
+		local diffy = y - self.yscale
+
+		self.xscale = x + ((additive and self.xscale) or 0)
+		self.yscale = y + ((additive and self.yscale) or 0)
+
 		for _,r in ipairs(receptordirections) do
-			self[r].wrap.Scale(x, y, additive)
+			self[r].wrap.Scale(diffx, diffy, true)
 		end
+
 		self.moved = true
 
 	end
@@ -902,9 +909,9 @@ function manager.wrapreceptors(r)
 			elseif k == 'distscale' then -- scale
 				r:ScaleDistance(v)
 			elseif k == 'xscale' then
-				r:Scale(v, r.yscale)
+				r:ScaleArrows(v, r.yscale)
 			elseif k == 'yscale' then
-				r:Scale(r.xscale, v)
+				r:ScaleArrows(r.xscale, v)
 			elseif k == 'rotx' then -- 3d rotation
 				r:RotateX(v)
 			elseif k == 'roty' then
