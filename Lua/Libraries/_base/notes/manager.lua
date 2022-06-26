@@ -273,9 +273,9 @@ function manager.createreceptors()
 
 			end
 
-			function rcptr.wrap.ScaleDistance(x, y, additive)
+			function rcptr.wrap.ScaleDistance(new, additive)
 
-				rcptr.wrap['distscale'] = x + ((additive and rcptr.wrap['distscale']) or 0)
+				rcptr.wrap['distscale'] = new + ((additive and rcptr.wrap['distscale']) or 0)
 
 			end
 
@@ -820,26 +820,26 @@ function manager.wrapsinglereceptor(r)
 				return r.wrap['yscale']
 			elseif k == 'distscale' then
 				return r.wrap['distscale']
-			elseif k == 'color' then
+			elseif k == 'color' then -- color
 				return r.wrap['color']
 			elseif k == 'alpha' then
 				return r.wrap['alpha']
 			end
 		end,
 		__newindex = function(t,k,v)
-			if k == 'x' then
+			if k == 'x' then -- position
 				r.wrap.MoveTo(v, r.wrap['y'])
 			elseif k == 'y' then
 				r.wrap.MoveTo(r.wrap['x'], v)
-			elseif k == 'rotation' then
+			elseif k == 'rotation' then -- rotation
 				r.wrap.Rotate(v)
-			elseif k == 'xscale' then
+			elseif k == 'xscale' then -- scale
 				r.wrap.Scale(v, r.wrap['yscale'])
 			elseif k == 'yscale' then
 				r.wrap.Scale(r.wrap['xscale'], v)
 			elseif k == 'distscale' then
 				r.wrap.ScaleDistance(v)
-			elseif k == 'color' then
+			elseif k == 'color' then -- color
 				r.wrap.SetColor(v)
 			elseif k == 'alpha' then
 				r.wrap.SetAlpha(v)
