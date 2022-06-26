@@ -178,6 +178,7 @@ function manager.createreceptors()
 	receptors.pivot = 0
 
 	receptors.color = {1,1,1}
+	receptors.alpha = 1
 
 	local function newreceptor(xoffset, rot)
 		local rcptr = {}
@@ -225,6 +226,30 @@ function manager.createreceptors()
 			rcptr.wrap['yscale'] = 1
 
 			rcptr.wrap['distscale'] = 1
+
+			rcptr.wrap['alpha'] = 1
+			rcptr.wrap['color'] = {1,1,1}
+
+			function rcptr.wrap.SetAlpha(alpha, additive)
+
+				alpha = alpha + ((additive and rcptr.wrap['alpha']) or 0)
+
+				rcptr.wrap['alpha'] = alpha
+
+				rcptr.visual.alpha = alpha * receptors.alpha
+				rcptr.explosion['alphamult'] = alpha * receptors.alpha
+
+			end
+
+			function rcptr.wrap.SetColor(col)
+				if col[4] then rcptr.wrap.SetAlpha(col[4]) end
+				col[4] = nil
+
+				rcptr.wrap['color'] = col
+
+				rcptr.visual.color = {col[1] * receptors.color[1], col[2] * receptors.color[2], col[3] * receptors.color[3]}
+
+			end
 
 			function rcptr.wrap.RotateVisual(rot, additive)
 				rv.rotation = rot + ((additive and rv.rotation) or rcptr.origrot)
@@ -282,11 +307,12 @@ function manager.createreceptors()
 	receptors.right = newreceptor(48, 90)
 
 	-- SETTERS --
-	function receptors:SetAlpha(val)
+	function receptors:SetAlpha(val, additive)
+
+		self.alpha = val + ((additive and self.alpha) or 0)
 
 		for _,r in ipairs(receptordirections) do
-			self[r].visual.alpha = val
-			self[r].explosion['alphamult'] = val
+			self[r].wrap.SetAlpha(self[r].wrap.alpha)
 		end
 
 	end
@@ -299,11 +325,14 @@ function manager.createreceptors()
 		self:SetAlpha(1)
 	end
 
-	function receptors:SetColor(col, g, b, a)
-		if type(col) ~= 'table' then col = {col, g, b, a} end
-		if col[4] then self:SetAlpha(col[4]) end
+	function receptors:SetColor(col)
 
+		if col[4] then self:SetAlpha(col[4]) end
 		self.color = col
+
+		for _,r in ipairs(receptordirections) do
+			self[r].wrap.SetColor(self[r].wrap.color)
+		end
 
 	end
 
@@ -537,7 +566,11 @@ function manager.update()
 
 			local receptor = r[row].visual
 
-			local col = r.color
+			local receptorcol = r[row].wrap.color
+			local setcol = r.color
+
+			local col = {receptorcol[1] * setcol[1], receptorcol[2] * setcol[2], receptorcol[3] * setcol[3]}
+
 			local red, g, b = col[1], col[2], col[3]
 
 			receptor.color = ((input.getkey(row) > 0) and {red*0.5, g*0.5, b*0.5}) or {red, g, b}
@@ -775,18 +808,22 @@ function manager.wrapsinglereceptor(r)
 		__index = function(t,k)
 			if type(r.wrap[k]) == 'function' then
 				return r.wrap[k]
-			elseif k == 'x' then
+			elseif k == 'x' then -- position
 				return r.wrap['x']
 			elseif k == 'y' then
 				return r.wrap['y']
-			elseif k == 'rotation' then
+			elseif k == 'rotation' then -- rotation
 				return r.visual.rotation
-			elseif k == 'xscale' then
+			elseif k == 'xscale' then -- scale
 				return r.wrap['xscale']
 			elseif k == 'yscale' then
 				return r.wrap['yscale']
 			elseif k == 'distscale' then
 				return r.wrap['distscale']
+			elseif k == 'color' then
+				return r.wrap['color']
+			elseif k == 'alpha' then
+				return r.wrap['alpha']
 			end
 		end,
 		__newindex = function(t,k,v)
@@ -802,6 +839,10 @@ function manager.wrapsinglereceptor(r)
 				r.wrap.Scale(r.wrap['xscale'], v)
 			elseif k == 'distscale' then
 				r.wrap.ScaleDistance(v)
+			elseif k == 'color' then
+				r.wrap.SetColor(v)
+			elseif k == 'alpha' then
+				r.wrap.SetAlpha(v)
 			end
 		end,
 		__metatable = false
